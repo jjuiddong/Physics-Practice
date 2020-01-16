@@ -3,23 +3,32 @@
 //	- reference
 //		- PhysXSample code
 //
-#include "stdafx.h"
+#include "../../../Common/Common/common.h"
+using namespace common;
+#include "../../../Common/Graphic11/graphic11.h"
+#include "../../../Common/Framework11/framework11.h"
+
+// physx release macro
+#if !defined(PX_SAFE_RELEASE)
+	#define PX_SAFE_RELEASE(p) {if((p)) {p->release(); p = nullptr;}}
+#endif
+
 #include "PxPhysicsAPI.h"
 
 #if defined(_DEBUG)
-	#pragma comment(lib, "../../../PhysX-3.4/PhysX_3.4/Lib/vc15win32/PhysX3DEBUG_x86.lib")
-	#pragma comment(lib, "../../../PhysX-3.4/PhysX_3.4/lib/vc15win32/PhysX3CookingDEBUG_x86.lib")
-	#pragma comment(lib, "../../../PhysX-3.4/PhysX_3.4/lib/vc15win32/PhysX3CommonDEBUG_x86.lib")
-	#pragma comment(lib, "../../../PhysX-3.4/PhysX_3.4/lib/vc15win32/PhysX3ExtensionsDEBUG.lib")
-	#pragma comment(lib, "../../../PhysX-3.4/PxShared/lib/vc15win32/PxFoundationDEBUG_x86.lib")
-	#pragma comment(lib, "../../../PhysX-3.4/PxShared/lib/vc15win32/PxPvdSDKDEBUG_x86.lib")
+#pragma comment(lib, "../../../PhysX-3.4/PhysX_3.4/Lib/vc15win32/PhysX3DEBUG_x86.lib")
+#pragma comment(lib, "../../../PhysX-3.4/PhysX_3.4/lib/vc15win32/PhysX3CookingDEBUG_x86.lib")
+#pragma comment(lib, "../../../PhysX-3.4/PhysX_3.4/lib/vc15win32/PhysX3CommonDEBUG_x86.lib")
+#pragma comment(lib, "../../../PhysX-3.4/PhysX_3.4/lib/vc15win32/PhysX3ExtensionsDEBUG.lib")
+#pragma comment(lib, "../../../PhysX-3.4/PxShared/lib/vc15win32/PxFoundationDEBUG_x86.lib")
+#pragma comment(lib, "../../../PhysX-3.4/PxShared/lib/vc15win32/PxPvdSDKDEBUG_x86.lib")
 #else
-	#pragma comment(lib, "../../../PhysX-3.4/PhysX_3.4/Lib/vc15win32/PhysX3_x86.lib")
-	#pragma comment(lib, "../../../PhysX-3.4/PhysX_3.4/lib/vc15win32/PhysX3Cooking_x86.lib")
-	#pragma comment(lib, "../../../PhysX-3.4/PhysX_3.4/lib/vc15win32/PhysX3Common_x86.lib")
-	#pragma comment(lib, "../../../PhysX-3.4/PhysX_3.4/lib/vc15win32/PhysX3Extensions.lib")
-	#pragma comment(lib, "../../../PhysX-3.4/PxShared/lib/vc15win32/PxFoundation_x86.lib")
-	#pragma comment(lib, "../../../PhysX-3.4/PxShared/lib/vc15win32/PxPvdSDK_x86.lib")
+#pragma comment(lib, "../../../PhysX-3.4/PhysX_3.4/Lib/vc15win32/PhysX3_x86.lib")
+#pragma comment(lib, "../../../PhysX-3.4/PhysX_3.4/lib/vc15win32/PhysX3Cooking_x86.lib")
+#pragma comment(lib, "../../../PhysX-3.4/PhysX_3.4/lib/vc15win32/PhysX3Common_x86.lib")
+#pragma comment(lib, "../../../PhysX-3.4/PhysX_3.4/lib/vc15win32/PhysX3Extensions.lib")
+#pragma comment(lib, "../../../PhysX-3.4/PxShared/lib/vc15win32/PxFoundation_x86.lib")
+#pragma comment(lib, "../../../PhysX-3.4/PxShared/lib/vc15win32/PxPvdSDK_x86.lib")
 #endif
 
 class cDefaultErrorCallback : public physx::PxErrorCallback
@@ -51,7 +60,7 @@ using namespace graphic;
 using namespace framework;
 
 class cViewer : public framework::cGameMain2
-				, public physx::PxDeletionListener
+	, public physx::PxDeletionListener
 {
 public:
 	cViewer();
@@ -66,8 +75,17 @@ protected:
 
 	physx::PxRigidActor* CreateGrid();
 	physx::PxRigidDynamic* CreateBox(const Vector3& pos
-		, const Vector3& dims, const Vector3* linVel
-		, float density);
+		, const Vector3& dims, const Vector3* linVel=nullptr
+		, float density=1.f);
+	physx::PxRigidDynamic* CreateSphere(const Vector3& pos
+		, const float radius, const Vector3* linVel = nullptr, float density = 1.f);
+	physx::PxRigidDynamic* CreateCapsule(const Vector3& pos
+		, const float radius, const float halfHeight, const Vector3* linVel=nullptr
+		, float density = 1.f);
+
+	cCube* SpawnBox(const Vector3& pos, const Vector3 &scale);
+	cSphere* SpawnSphere(const Vector3& pos, const float radius);
+	cCapsule* SpawnCapsule(const Vector3& pos, const float radius, const float halfHeight);
 
 	// PxDeletionListener override
 	virtual void onRelease(const physx::PxBase* observed, void* userData
@@ -125,7 +143,7 @@ cViewer::~cViewer()
 	PX_SAFE_RELEASE(m_cudaContextManager);
 	PX_SAFE_RELEASE(m_cpuDispatcher);
 	PX_SAFE_RELEASE(m_cooking);
-	PX_SAFE_RELEASE(m_material);	
+	PX_SAFE_RELEASE(m_material);
 	PX_SAFE_RELEASE(m_physics);
 	PX_SAFE_RELEASE(m_pvd);
 	PX_SAFE_RELEASE(m_transport);
@@ -158,18 +176,16 @@ bool cViewer::OnInit()
 
 	cGridLine *gridLine = new cGridLine();
 	gridLine->Create(m_renderer, 100, 100, 1.f, 1.f);
-
-	cCube *cube = new cCube();
-	cube->Create(m_renderer);
-	const Vector3 boxPos(0, 10, 0);
-	const float boxScale = 0.5f;
-	Transform tfm;
-	tfm.pos = boxPos;
-	tfm.scale = Vector3(1, 1, 1) * boxScale;
-	cube->SetCube(tfm);
-
 	m_actors.push_back({ CreateGrid(), "grid", gridLine });
-	m_actors.push_back({ CreateBox(boxPos, Vector3::Ones*boxScale, nullptr, 1.f), "cube", cube });
+
+	const Vector3 pos(0, 10, 0);
+	const float scale = 0.5f;
+	//const Vector3 boxScale = Vector3::Ones * scale;
+	//cCube *cube = SpawnBox(Vector3(0, 10, 0), Vector3::Ones * 0.5f);
+	//m_actors.push_back({ CreateBox(pos, Vector3::Ones*scale, nullptr, 1.f), "cube", cube });
+	
+	cSphere *sphere = SpawnSphere(pos, 0.5f);
+	m_actors.push_back({ CreateSphere(pos, scale, nullptr, 1.f), "sphere", sphere});
 
 	m_activeBufferCapacity = m_actors.size();
 	m_bufferedActiveTransforms = (physx::PxActiveTransform*)_aligned_malloc(
@@ -323,7 +339,7 @@ void cViewer::OnRender(const float deltaSeconds)
 		uint activeActorSize = 0;
 		{
 			PxSceneReadLock scopedLock(*m_scene);
-			const PxActiveTransform* activeTransforms = 
+			const PxActiveTransform* activeTransforms =
 				m_scene->getActiveTransforms(activeActorSize);
 			if (activeActorSize > m_activeBufferCapacity)
 			{
@@ -347,16 +363,18 @@ void cViewer::OnRender(const float deltaSeconds)
 			PxActiveTransform *activeTfm = &m_bufferedActiveTransforms[i];
 
 			auto it = find_if(m_actors.begin(), m_actors.end(), [&](const auto &a) {
-				return (a.actor == activeTfm->actor);});
+				return (a.actor == activeTfm->actor); });
 			if (m_actors.end() == it)
 				continue;
 
 			sActor &actor = *it;
-			if (actor.name == "cube")
 			{
 				Transform tfm = actor.node->m_transform;
 				tfm.pos = *(Vector3*)&activeTfm->actor2World.p;
 				tfm.rot = *(Quaternion*)&activeTfm->actor2World.q;
+				//Quaternion q = *(Quaternion*)&activeTfm->actor2World.q;
+				//Matrix44 m = q.GetMatrix();
+
 				actor.node->m_transform = tfm;
 			}
 		}
@@ -383,8 +401,10 @@ physx::PxRigidActor* cViewer::CreateGrid()
 
 
 physx::PxRigidDynamic* cViewer::CreateBox(const Vector3& pos
-	, const Vector3& dims, const Vector3* linVel
-	, float density)
+	, const Vector3& dims
+	, const Vector3* linVel // = nullptr
+	, float density // = 1.f
+)
 {
 	using namespace physx;
 	PxSceneWriteLock scopedLock(*m_scene);
@@ -402,6 +422,87 @@ physx::PxRigidDynamic* cViewer::CreateBox(const Vector3& pos
 }
 
 
+physx::PxRigidDynamic* cViewer::CreateSphere(const Vector3& pos
+	, const float radius
+	, const Vector3* linVel // = nullptr
+	, float density // = 1.f
+)
+{
+	using namespace physx;
+	PxSceneWriteLock scopedLock(*m_scene);
+	PxRigidDynamic* sphere = PxCreateDynamic(*m_physics, PxTransform(*(PxVec3*)&pos)
+		, PxSphereGeometry(radius), *m_material, density);
+	PX_ASSERT(sphere);
+
+	sphere->setActorFlag(PxActorFlag::eVISUALIZATION, true);
+	sphere->setAngularDamping(0.5f);
+	sphere->setRigidBodyFlag(PxRigidBodyFlag::eKINEMATIC, false);
+	m_scene->addActor(*sphere);
+
+	if (linVel)
+		sphere->setLinearVelocity(*(PxVec3*)linVel);
+
+	return sphere;
+}
+
+
+physx::PxRigidDynamic* cViewer::CreateCapsule(const Vector3& pos
+	, const float radius, const float halfHeight
+	, const Vector3* linVel //= nullptr
+	, float density //= 1.f
+)
+{
+	using namespace physx;
+	PxSceneWriteLock scopedLock(*m_scene);
+	const PxQuat rot = PxQuat(PxIdentity);
+	PX_UNUSED(rot);
+
+	PxRigidDynamic* capsule = PxCreateDynamic(*m_physics, PxTransform(*(PxVec3*)&pos)
+		, PxCapsuleGeometry(radius, halfHeight), *m_material, density);
+	PX_ASSERT(capsule);
+
+	capsule->setActorFlag(PxActorFlag::eVISUALIZATION, true);
+	capsule->setAngularDamping(0.5f);
+	capsule->setRigidBodyFlag(PxRigidBodyFlag::eKINEMATIC, false);
+	m_scene->addActor(*capsule);
+
+	if (linVel)
+		capsule->setLinearVelocity(*(PxVec3*)linVel);
+
+	return capsule;
+}
+
+
+cSphere* cViewer::SpawnSphere(const Vector3& pos, const float radius)
+{
+	cSphere *sphere = new cSphere();
+	sphere->Create(m_renderer, radius, 10, 10);
+	sphere->m_transform.pos = pos;
+	return sphere;
+}
+
+
+cCube* cViewer::SpawnBox(const Vector3& pos, const Vector3 &scale)
+{
+	cCube *cube = new cCube();
+	cube->Create(m_renderer);
+	Transform tfm;
+	tfm.pos = pos;
+	tfm.scale = scale;
+	cube->SetCube(tfm);
+	return cube;
+}
+
+
+cCapsule* cViewer::SpawnCapsule(const Vector3& pos, const float radius, const float halfHeight)
+{
+	cCapsule *capsule = new cCapsule();
+	capsule->Create(m_renderer, radius, halfHeight, 16, 8);
+	capsule->SetPos(pos);
+	return capsule;
+}
+
+
 void cViewer::OnEventProc(const sf::Event &evt)
 {
 	ImGuiIO& io = ImGui::GetIO();
@@ -412,17 +513,31 @@ void cViewer::OnEventProc(const sf::Event &evt)
 		case sf::Keyboard::Escape: close(); break;
 		case sf::Keyboard::Space:
 		{
-			cCube *cube = new cCube();
-			cube->Create(m_renderer);
-			const Vector3 boxPos(0, 10, 0);
-			const float boxScale = 0.5f;
-			Transform tfm;
-			tfm.pos = boxPos;
-			tfm.scale = Vector3(1, 1, 1) * boxScale;
-			cube->SetCube(tfm);
+			const Vector3 pos(0, 10, 0);
+			const float scale = 0.5f;
+			static int idx = 2;
+			cNode *node = nullptr;
+			switch (idx)
+			{
+			case 0: 
+				node = SpawnBox(pos, Vector3::Ones * scale);
+				m_actors.push_back({ CreateBox(pos, Vector3::Ones*scale)
+					, "cube", node });
+				break;
 
-			m_actors.push_back({ CreateBox(Vector3(0,10,0)
-				, Vector3::Ones*boxScale, nullptr, 1.f), "cube", cube });
+			case 1: 
+				node = SpawnSphere(pos, scale);
+				m_actors.push_back({ CreateSphere(pos, scale), "sphere", node});
+				break;
+
+			case 2:
+				node = SpawnCapsule(pos, scale, scale*2.f);
+				m_actors.push_back({ CreateCapsule(pos, scale, scale*2.f), "capsule", node });
+				break;
+			}
+			
+			++idx;
+			idx %= 3;
 		}
 		break;
 		}
