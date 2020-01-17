@@ -212,9 +212,6 @@ bool cPhysicsEngine::PostUpdate(const float deltaSeconds)
 			Transform tfm = actor.node->m_transform;
 			tfm.pos = *(Vector3*)&activeTfm->actor2World.p;
 			tfm.rot = *(Quaternion*)&activeTfm->actor2World.q;
-			//Quaternion q = *(Quaternion*)&activeTfm->actor2World.q;
-			//Matrix44 m = q.GetMatrix();
-
 			actor.node->m_transform = tfm;
 		}
 	}

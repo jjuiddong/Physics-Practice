@@ -3,7 +3,6 @@ Physics Practice with VS2017 C++, PhysX, DX11, ImGui
 
 - PhysX 3.4 
 	- MT/MTd -> MD/MDd Build
-
 - Sample
 	- Rope Simulation
 	- https://www.youtube.com/watch?v=hEM7srRmeBE
