@@ -285,7 +285,13 @@ void cInformationView::RenderRevoluteJoint()
 				const Vector3 center = (m_pos0 + m_pos1) * 0.5f;
 				const Vector3 revoluteAxis = axis[axisIdx];
 
-				// Revolute Z-Axis
+				// Revolute specific Axis
+				// math expression
+				// curAxis : X-axis
+				// ActorTM0 * rotate curAxis -> revolute axis => ActorTM1
+				// ActorTM1 * tm => JointTM
+				// tm(=localFrame) = inverse(ActorTM1) * JointTM
+
 				Quaternion rot(Vector3(1, 0, 0), revoluteAxis);
 				Matrix44 rtm = rot.GetMatrix();
 				Matrix44 actorTM0;
@@ -366,10 +372,16 @@ void cInformationView::RenderPrismaticJoint()
 			if (result.node0)
 			{
 				const Vector3 center = (m_pos0 + m_pos1) * 0.5f;
-				const Vector3 revoluteAxis = axis[axisIdx];
+				const Vector3 lienarAxis = axis[axisIdx];
 
-				// Revolute Z-Axis
-				Quaternion rot(Vector3(1, 0, 0), revoluteAxis);
+				// Linear Move specific Axis
+				// math expression
+				// curAxis : X-axis
+				// ActorTM0 * rotate curAxis -> revolute axis => ActorTM1
+				// ActorTM1 * tm => JointTM
+				// tm(=localFrame) = inverse(ActorTM1) * JointTM
+
+				Quaternion rot(Vector3(1, 0, 0), lienarAxis);
 				Matrix44 rtm = rot.GetMatrix();
 				Matrix44 actorTM0;
 				actorTM0.SetPosition(m_pos0);
