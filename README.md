@@ -9,4 +9,5 @@ Physics Practice with VS2017 C++, PhysX, DX11
 ![](https://github.com/jjuiddong/Physics-Practice/blob/master/Doc/capsule.jpg?raw=true)
 ![](https://github.com/jjuiddong/Physics-Practice/blob/master/Doc/joint.jpg?raw=true)
 ![](https://github.com/jjuiddong/Physics-Practice/blob/master/Doc/joint2.jpg?raw=true)
+![](https://github.com/jjuiddong/Physics-Practice/blob/master/Doc/rope.jpg?raw=true)
 
