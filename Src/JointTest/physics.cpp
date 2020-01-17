@@ -230,9 +230,6 @@ physx::PxRigidActor* cPhysicsEngine::CreateGrid()
 		return nullptr;
 
 	m_scene->addActor(*plane);
-
-	//PxShape* shape;
-	//plane->getShapes(&shape, 1);
 	return plane;
 }
 
