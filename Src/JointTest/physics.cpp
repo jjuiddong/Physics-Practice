@@ -360,3 +360,28 @@ bool cPhysicsEngine::AddJoint(physx::PxJoint *joint)
 	m_joints.push_back(joint);
 	return true;
 }
+
+
+void cPhysicsEngine::ClearPhysicsObject()
+{
+	// no remove ground plane object
+	sActor ground;
+	for (auto &p : m_actors)
+	{
+		if (p.name == "grid")
+		{
+			ground = p;
+			continue;
+		}
+		m_scene->removeActor(*p.actor);
+		PX_SAFE_RELEASE(p.actor);
+		SAFE_DELETE(p.node);
+	}
+	m_actors.clear();
+	if (ground.name == "grid")
+		m_actors.push_back(ground);
+
+	for (auto &j : m_joints)
+		PX_SAFE_RELEASE(j);
+	m_joints.clear();
+}

@@ -26,7 +26,7 @@ bool c3DView::Init(cRenderer &renderer)
 	m_camera.SetViewPort(m_rect.Width(), m_rect.Height());
 
 	GetMainLight().Init(graphic::cLight::LIGHT_DIRECTIONAL);
-	GetMainLight().SetDirection(Vector3(-1, -1, 1).Normal());
+	GetMainLight().SetDirection(Vector3(-1, -2, 1.3f).Normal());
 
 	sf::Vector2u size((u_int)m_rect.Width() - 15, (u_int)m_rect.Height() - 50);
 	cViewport vp = renderer.m_viewPort;

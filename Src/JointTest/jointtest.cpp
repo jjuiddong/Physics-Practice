@@ -85,7 +85,7 @@ bool cViewer::OnInit()
 	assert(result);
 
 	cInformationView *infoView = new cInformationView("Information");
-	infoView->Create(eDockState::DOCKWINDOW, eDockSlot::RIGHT, this, p3dView, 0.25f
+	infoView->Create(eDockState::DOCKWINDOW, eDockSlot::RIGHT, this, p3dView, 0.27f
 		, framework::eDockSizingOption::PIXEL);
 
 	m_gui.SetContext();

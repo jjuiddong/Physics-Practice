@@ -43,6 +43,7 @@ public:
 		, const Vector3& pos, const float radius, const float halfHeight);
 
 	bool AddJoint(physx::PxJoint *joint);
+	void ClearPhysicsObject();
 
 
 protected:
