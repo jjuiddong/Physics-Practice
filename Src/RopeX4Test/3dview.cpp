@@ -9,7 +9,6 @@ using namespace framework;
 c3DView::c3DView(const string &name)
 	: framework::cDockWindow(name)
 	, m_showGrid(true)
-	, m_physSync(nullptr)
 {
 }
 
@@ -21,8 +20,8 @@ c3DView::~c3DView()
 
 bool c3DView::Init(cRenderer &renderer)
 {
-	const Vector3 eyePos(3.f, 20.f, -30.f);
-	const Vector3 lookAt(0, 0, 0);
+	const Vector3 eyePos(12.0439510f, 29.6167679f, -27.8085155f);
+	const Vector3 lookAt(-10.7197342f, 0.000000000f, 47.5336151f);
 	m_camera.SetCamera(eyePos, lookAt, Vector3(0, 1, 0));
 	m_camera.SetProjection(MATH_PI / 4.f, m_rect.Width() / m_rect.Height(), 1.f, 1000000.f);
 	m_camera.SetViewPort(m_rect.Width(), m_rect.Height());
@@ -43,11 +42,83 @@ bool c3DView::Init(cRenderer &renderer)
 	m_physSync = new phys::cPhysicsSync();
 	m_physSync->Create(&m_physics);
 	m_physSync->SpawnPlane(renderer, Vector3(0, 1, 0));
+
+	using namespace physx;
+	const float rootY = 30.f;
+	Vector3 rootPoss[4] = {
+		Vector3(0, rootY, 0)
+		,  Vector3(0, rootY, 5)
+		,  Vector3(5, rootY, 5)
+		, Vector3(5, rootY, 0)
+	};
+	int rootIds[4];
 	
-	Transform tfm;
-	tfm.pos = Vector3(0, 10, 0);
-	tfm.scale = Vector3::Ones * 0.5f;
-	m_physSync->SpawnBox(renderer, tfm);
+	for (int i = 0; i < 4; ++i)
+	{
+		const int rootId0 = m_physSync->SpawnSphere(renderer, rootPoss[i], 0.5f);
+		phys::cPhysicsSync::sActorInfo *rootActor0 = m_physSync->FindActorInfo(rootId0);
+		rootActor0->actor->SetKinematic(true);
+		rootIds[i] = rootId0;
+	}
+
+	// https://www.youtube.com/watch?v=B7aDQyiGSPM
+	// trick is based on the observation that using a larger mass for the sphere 
+	// gives a more stable rope.So a common and quite effective hack is to artificially 
+	// increase the mass of the object, but just for computing its inertia 
+	// tensor(you still use the proper mass for everything else otherwise)
+
+	// make rope
+	int ropeIds[4];
+	for (int k = 0; k < 4; ++k)
+	{
+		Transform prevTfm;
+		prevTfm.pos = rootPoss[k];
+		phys::cPhysicsSync::sActorInfo *root = m_physSync->FindActorInfo(rootIds[k]);
+		root->actor->SetKinematic(true);
+
+		phys::cRigidActor *prev = root->actor;
+		for (int i = 0; i < 25; ++i)
+		{
+			const Vector3 pos(rootPoss[k].x, rootY - 0.8f - i * 0.8f, rootPoss[k].z);
+			
+			Transform tfm;
+			tfm.pos = pos;
+			tfm.rot.SetRotationZ(MATH_PI / 2.f);
+			const int actorId = m_physSync->SpawnCapsule(renderer, tfm, 0.1f, 0.3f, 100.f);
+			phys::cPhysicsSync::sActorInfo *capsule = m_physSync->FindActorInfo(actorId);
+
+			phys::cJoint *joint = new phys::cJoint();
+			joint->CreateSphericalJoint(m_physics, prev, prevTfm, capsule->actor, tfm);
+			m_physSync->AddJoint(joint);
+
+			prev = capsule->actor;
+			prevTfm = tfm;
+
+			if (i == 24)
+				ropeIds[k] = actorId;
+		}
+	}
+
+	// make box
+	{
+		Transform tfm;
+		tfm.pos = Vector3(2.5f, rootY - 0.8f - 25 * 0.8f - 1.5f, 2.5f);
+		tfm.scale = Vector3::Ones * 2.7f;
+		const int boxId = m_physSync->SpawnBox(renderer, tfm, 1.f);
+		phys::cPhysicsSync::sActorInfo *box = m_physSync->FindActorInfo(boxId);
+		m_boxId = boxId;
+
+		for (int i = 0; i < 4; ++i)
+		{
+			phys::cPhysicsSync::sActorInfo *capsule = m_physSync->FindActorInfo(ropeIds[i]);
+			Transform capsuleTfm = capsule->node->m_transform;
+
+			phys::cJoint *joint = new phys::cJoint();
+			//joint->CreateSphericalJoint(m_physics, box->actor, tfm, capsule->actor, capsuleTfm);
+			joint->CreateFixedJoint(m_physics, box->actor, tfm, capsule->actor, capsuleTfm);
+			m_physSync->AddJoint(joint);
+		}
+	}
 
 	return true;
 }
@@ -113,6 +184,7 @@ void c3DView::OnRender(const float deltaSeconds)
 	{
 		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 		ImGui::Checkbox("grid", &m_showGrid);
+		ImGui::Text("Press SpaceBar");
 		ImGui::End();
 	}
 
@@ -276,25 +348,16 @@ void c3DView::OnEventProc(const sf::Event &evt)
 			break;
 		case sf::Keyboard::Space:
 		{
-			Transform tfm;
-			tfm.pos = Vector3(0, 10, 0);
-			tfm.scale = Vector3::Ones * 0.5f;
-			static int idx = 2;
-			switch (idx)
-			{
-			case 0:
-				m_physSync->SpawnBox(GetRenderer(), tfm);
-				break;
-			case 1:
-				m_physSync->SpawnSphere(GetRenderer(), tfm.pos, tfm.scale.Length());
-				break;
-			case 2:
-				m_physSync->SpawnCapsule(GetRenderer(), tfm, tfm.scale.Length()
-					, tfm.scale.Length()*2.f);
-				break;
-			}
-			++idx;
-			idx %= 3;
+			using namespace physx;
+			phys::cPhysicsSync::sActorInfo *box = m_physSync->FindActorInfo(m_boxId);
+	
+			//PxVec3 force(10, 0, 0);
+			//box->actor->m_dynamic->addForce(force, PxForceMode::eIMPULSE, true);
+			//PxRigidBodyExt::addForceAtPos(*box->actor->m_dynamic
+			//	, PxVec3(-1.f, 0, 0), PxVec3(0.5f,0,0) );
+
+			PxVec3 force(0, 100, 0);
+			box->actor->m_dynamic->addTorque(force, PxForceMode::eIMPULSE, true);
 		}
 		break;
 		}
