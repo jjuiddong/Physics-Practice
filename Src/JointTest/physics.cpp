@@ -228,8 +228,6 @@ physx::PxRigidActor* cPhysicsEngine::CreateGrid()
 		, PxPlane(PxVec3(0, 1, 0), 0), *m_material);
 	if (!plane)
 		return nullptr;
-
-	m_scene->addActor(*plane);
 	return plane;
 }
 
@@ -248,7 +246,6 @@ physx::PxRigidDynamic* cPhysicsEngine::CreateBox(const Vector3& pos
 	box->setActorFlag(PxActorFlag::eVISUALIZATION, true);
 	box->setAngularDamping(0.5f);
 	box->setRigidBodyFlag(PxRigidBodyFlag::eKINEMATIC, false);
-	m_scene->addActor(*box);
 	if (linVel)
 		box->setLinearVelocity(*(PxVec3*)linVel);
 	return box;
@@ -269,7 +266,6 @@ physx::PxRigidDynamic* cPhysicsEngine::CreateSphere(const Vector3& pos
 	sphere->setActorFlag(PxActorFlag::eVISUALIZATION, true);
 	sphere->setAngularDamping(0.5f);
 	sphere->setRigidBodyFlag(PxRigidBodyFlag::eKINEMATIC, false);
-	m_scene->addActor(*sphere);
 
 	if (linVel)
 		sphere->setLinearVelocity(*(PxVec3*)linVel);
@@ -295,7 +291,6 @@ physx::PxRigidDynamic* cPhysicsEngine::CreateCapsule(const Vector3& pos
 	capsule->setActorFlag(PxActorFlag::eVISUALIZATION, true);
 	capsule->setAngularDamping(0.5f);
 	capsule->setRigidBodyFlag(PxRigidBodyFlag::eKINEMATIC, false);
-	m_scene->addActor(*capsule);
 
 	if (linVel)
 		capsule->setLinearVelocity(*(PxVec3*)linVel);
