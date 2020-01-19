@@ -177,13 +177,15 @@ void cInformationView::RenderFixedJoint()
 			sSpawnObj result = SpawnObject();
 			if (result.node0)
 			{
-				const Vector3 center = (m_pos0 + m_pos1) * 0.5f;
-				const Vector3 p0 = center - m_pos0;
-				const Vector3 p1 = center - m_pos1;
+				const Transform worldTfm0(m_pos0);
+				const Transform worldTfm1(m_pos1);
+				PxTransform localFrame0, localFrame1;
+				GetLocalFrame(worldTfm0, worldTfm1, Vector3::Zeroes
+					, localFrame0, localFrame1);
 
 				PxFixedJoint *joint = PxFixedJointCreate(*g_physics.m_physics
-					, result.actor0, PxTransform(*(PxVec3*)&p0)
-					, result.actor1, PxTransform(*(PxVec3*)&p1));
+					, result.actor0, localFrame0
+					, result.actor1, localFrame1);
 
 				result.actor0->setRigidBodyFlag(PxRigidBodyFlag::eKINEMATIC, m_isKinematic0);
 				result.actor1->setRigidBodyFlag(PxRigidBodyFlag::eKINEMATIC, m_isKinematic1);
@@ -222,13 +224,15 @@ void cInformationView::RenderSphericalJoint()
 			sSpawnObj result = SpawnObject();
 			if (result.node0)
 			{
-				const Vector3 center = (m_pos0 + m_pos1) * 0.5f;
-				const Vector3 p0 = center - m_pos0;
-				const Vector3 p1 = center - m_pos1;
+				const Transform worldTfm0(m_pos0);
+				const Transform worldTfm1(m_pos1);
+				PxTransform localFrame0, localFrame1;
+				GetLocalFrame(worldTfm0, worldTfm1, Vector3::Zeroes
+					, localFrame0, localFrame1);
 
 				PxSphericalJoint *joint = PxSphericalJointCreate(*g_physics.m_physics
-					, result.actor0, PxTransform(*(PxVec3*)&p0)
-					, result.actor1, PxTransform(*(PxVec3*)&p1));
+					, result.actor0, localFrame0
+					, result.actor1, localFrame1);
 
 				if (m_isLimitJoint)
 				{
@@ -282,36 +286,17 @@ void cInformationView::RenderRevoluteJoint()
 			sSpawnObj result = SpawnObject();
 			if (result.node0)
 			{
-				const Vector3 center = (m_pos0 + m_pos1) * 0.5f;
 				const Vector3 revoluteAxis = axis[axisIdx];
 
-				// Revolute specific Axis
-				// math expression
-				// curAxis : X-axis
-				// ActorTM0 * rotate curAxis -> revolute axis => ActorTM1
-				// ActorTM1 * tm => JointTM
-				// tm(=localFrame) = inverse(ActorTM1) * JointTM
-
-				Quaternion rot(Vector3(1, 0, 0), revoluteAxis);
-				Matrix44 rtm = rot.GetMatrix();
-				Matrix44 actorTM0;
-				actorTM0.SetPosition(m_pos0);
-				Matrix44 actorTM1;
-				actorTM1.SetPosition(m_pos1);
-				Matrix44 tm0 = actorTM0 * rtm;
-				Matrix44 tm1 = actorTM1 * rtm;
-				Matrix44 jointTM;
-				jointTM.SetPosition(center);
-				Matrix44 localTM0 = tm0.Inverse() * jointTM;
-				Matrix44 localTM1 = tm1.Inverse() * jointTM;
-				const Vector3 p0 = localTM0.GetPosition();
-				const Quaternion q0 = localTM0.GetQuaternion();
-				const Vector3 p1 = localTM1.GetPosition();
-				const Quaternion q1 = localTM1.GetQuaternion();
+				const Transform worldTfm0(m_pos0);
+				const Transform worldTfm1(m_pos1);
+				PxTransform localFrame0, localFrame1;
+				GetLocalFrame(worldTfm0, worldTfm1, revoluteAxis
+					, localFrame0, localFrame1);
 
 				PxRevoluteJoint *joint = PxRevoluteJointCreate(*g_physics.m_physics
-					, result.actor0, PxTransform(*(PxVec3*)&p0, *(PxQuat*)&q0)
-					, result.actor1, PxTransform(*(PxVec3*)&p1, *(PxQuat*)&q1));
+					, result.actor0, localFrame0
+					, result.actor1, localFrame1);
 
 				if (m_isLimitJoint)
 				{
@@ -371,36 +356,16 @@ void cInformationView::RenderPrismaticJoint()
 			sSpawnObj result = SpawnObject();
 			if (result.node0)
 			{
-				const Vector3 center = (m_pos0 + m_pos1) * 0.5f;
 				const Vector3 lienarAxis = axis[axisIdx];
-
-				// Linear Move specific Axis
-				// math expression
-				// curAxis : X-axis
-				// ActorTM0 * rotate curAxis -> revolute axis => ActorTM1
-				// ActorTM1 * tm => JointTM
-				// tm(=localFrame) = inverse(ActorTM1) * JointTM
-
-				Quaternion rot(Vector3(1, 0, 0), lienarAxis);
-				Matrix44 rtm = rot.GetMatrix();
-				Matrix44 actorTM0;
-				actorTM0.SetPosition(m_pos0);
-				Matrix44 actorTM1;
-				actorTM1.SetPosition(m_pos1);
-				Matrix44 tm0 = actorTM0 * rtm;
-				Matrix44 tm1 = actorTM1 * rtm;
-				Matrix44 jointTM;
-				jointTM.SetPosition(center);
-				Matrix44 localTM0 = tm0.Inverse() * jointTM;
-				Matrix44 localTM1 = tm1.Inverse() * jointTM;
-				const Vector3 p0 = localTM0.GetPosition();
-				const Quaternion q0 = localTM0.GetQuaternion();
-				const Vector3 p1 = localTM1.GetPosition();
-				const Quaternion q1 = localTM1.GetQuaternion();
+				const Transform worldTfm0(m_pos0);
+				const Transform worldTfm1(m_pos1);
+				PxTransform localFrame0, localFrame1;
+				GetLocalFrame(worldTfm0, worldTfm1, lienarAxis
+					, localFrame0, localFrame1);
 
 				PxPrismaticJoint *joint = PxPrismaticJointCreate(*g_physics.m_physics
-					, result.actor0, PxTransform(*(PxVec3*)&p0, *(PxQuat*)&q0)
-					, result.actor1, PxTransform(*(PxVec3*)&p1, *(PxQuat*)&q1));
+					, result.actor0, localFrame0
+					, result.actor1, localFrame1);
 
 				if (m_isLimitJoint)
 				{
@@ -440,13 +405,15 @@ void cInformationView::RenderDistanceJoint()
 			sSpawnObj result = SpawnObject();
 			if (result.node0)
 			{
-				const Vector3 center = (m_pos0 + m_pos1) * 0.5f;
-				const Vector3 p0 = center - m_pos0;
-				const Vector3 p1 = center - m_pos1;
+				const Transform worldTfm0(m_pos0);
+				const Transform worldTfm1(m_pos1);
+				PxTransform localFrame0, localFrame1;
+				GetLocalFrame(worldTfm0, worldTfm1, Vector3::Zeroes
+					, localFrame0, localFrame1);
 
 				PxDistanceJoint *joint = PxDistanceJointCreate(*g_physics.m_physics
-					, result.actor0, PxTransform(*(PxVec3*)&p0)
-					, result.actor1, PxTransform(*(PxVec3*)&p1));
+					, result.actor0, localFrame0
+					, result.actor1, localFrame1);
 
 				if (m_isLimitJoint)
 				{
@@ -573,4 +540,49 @@ void cInformationView::RenderD6Joint()
 		ImGui::Spacing();
 		ImGui::Spacing();
 	}
+}
+
+
+// calc localFrame for PxJoint~ Function seriese
+// worldTm0 : actor0 world transform
+// worldTm1 : actor1 world transform
+// revoluteAxis : revolution Axis
+//			      if ZeroVector, ignore revolute axis
+// out0 : actor0 localFrame
+// out1 : actor1 localFrame
+void cInformationView::GetLocalFrame(const Transform &worldTm0, const Transform &worldTm1
+	, const Vector3 &revoluteAxis
+	, OUT physx::PxTransform &out0, OUT physx::PxTransform &out1)
+
+{
+	using namespace physx;
+
+	Transform tfm0 = worldTm0;
+	Transform tfm1 = worldTm1;
+
+	const Vector3 center = (tfm0.pos + tfm1.pos) * 0.5f;
+	Vector3 p0 = center - tfm0.pos;
+	Vector3 p1 = center - tfm1.pos;
+	Quaternion q0 = tfm0.rot.Inverse();
+	Quaternion q1 = tfm1.rot.Inverse();
+
+	if (revoluteAxis != Vector3::Zeroes)
+	{
+		Quaternion rot(revoluteAxis, Vector3(1, 0, 0));
+		tfm0.rot *= rot;
+		tfm1.rot *= rot;
+
+		p0 = (tfm0.pos - center) * rot + center;
+		p1 = (tfm1.pos - center) * rot + center;
+		p0 = center - p0;
+		p1 = center - p1;
+		q0 = tfm0.rot.Inverse();
+		q1 = tfm1.rot.Inverse();
+	}
+
+	const PxTransform localFrame0 = PxTransform(*(PxQuat*)&q0) * PxTransform(*(PxVec3*)&p0);
+	const PxTransform localFrame1 = PxTransform(*(PxQuat*)&q1) * PxTransform(*(PxVec3*)&p1);
+
+	out0 = localFrame0;
+	out1 = localFrame1;
 }

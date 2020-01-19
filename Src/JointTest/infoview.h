@@ -23,6 +23,8 @@ protected:
 	void RenderPrismaticJoint();
 	void RenderDistanceJoint();
 	void RenderD6Joint();
+	void GetLocalFrame(const Transform &worldTm0, const Transform &worldTm1
+		, const Vector3 &revoluteAxis, OUT physx::PxTransform &out0, OUT physx::PxTransform &out1);
 
 	struct sSpawnObj {
 		graphic::cNode *node0;
