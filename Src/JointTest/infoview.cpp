@@ -505,13 +505,15 @@ void cInformationView::RenderD6Joint()
 			sSpawnObj result = SpawnObject();
 			if (result.node0)
 			{
-				const Vector3 center = (m_pos0 + m_pos1) * 0.5f;
-				const Vector3 p0 = center - m_pos0;
-				const Vector3 p1 = center - m_pos1;
+				const Transform worldTfm0(m_pos0);
+				const Transform worldTfm1(m_pos1);
+				PxTransform localFrame0, localFrame1;
+				GetLocalFrame(worldTfm0, worldTfm1, Vector3::Zeroes
+					, localFrame0, localFrame1);
 
 				PxD6Joint *joint = PxD6JointCreate(*g_physics.m_physics
-					, result.actor0, PxTransform(*(PxVec3*)&p0)
-					, result.actor1, PxTransform(*(PxVec3*)&p1));
+					, result.actor0, localFrame0
+					, result.actor1, localFrame1);
 
 				if (isLinearLimit)
 					joint->setLinearLimit(linearLimit);
@@ -548,12 +550,11 @@ void cInformationView::RenderD6Joint()
 // worldTm1 : actor1 world transform
 // revoluteAxis : revolution Axis
 //			      if ZeroVector, ignore revolute axis
-// out0 : actor0 localFrame
-// out1 : actor1 localFrame
+// out0 : return actor0 localFrame
+// out1 : return actor1 localFrame
 void cInformationView::GetLocalFrame(const Transform &worldTm0, const Transform &worldTm1
 	, const Vector3 &revoluteAxis
 	, OUT physx::PxTransform &out0, OUT physx::PxTransform &out1)
-
 {
 	using namespace physx;
 
