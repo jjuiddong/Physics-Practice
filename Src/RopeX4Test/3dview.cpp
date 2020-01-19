@@ -88,7 +88,7 @@ bool c3DView::Init(cRenderer &renderer)
 			phys::cPhysicsSync::sActorInfo *capsule = m_physSync->FindActorInfo(actorId);
 
 			phys::cJoint *joint = new phys::cJoint();
-			joint->CreateSphericalJoint(m_physics, prev, prevTfm, capsule->actor, tfm);
+			joint->CreateSpherical(m_physics, prev, prevTfm, capsule->actor, tfm);
 			m_physSync->AddJoint(joint);
 
 			prev = capsule->actor;
@@ -115,7 +115,7 @@ bool c3DView::Init(cRenderer &renderer)
 
 			phys::cJoint *joint = new phys::cJoint();
 			//joint->CreateSphericalJoint(m_physics, box->actor, tfm, capsule->actor, capsuleTfm);
-			joint->CreateFixedJoint(m_physics, box->actor, tfm, capsule->actor, capsuleTfm);
+			joint->CreateFixed(m_physics, box->actor, tfm, capsule->actor, capsuleTfm);
 			m_physSync->AddJoint(joint);
 		}
 	}
@@ -151,7 +151,7 @@ void c3DView::OnPreRender(const float deltaSeconds)
 		if (m_physSync)
 		{
 			for (auto &p : m_physSync->m_actors)
-				p.node->Render(renderer);
+				p->node->Render(renderer);
 		}
 
 		renderer.RenderAxis();

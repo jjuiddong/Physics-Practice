@@ -80,7 +80,7 @@ void c3DView::OnPreRender(const float deltaSeconds)
 		if (m_physSync)
 		{
 			for (auto &p : m_physSync->m_actors)
-				p.node->Render(renderer);
+				p->node->Render(renderer);
 		}
 
 		renderer.RenderAxis();
