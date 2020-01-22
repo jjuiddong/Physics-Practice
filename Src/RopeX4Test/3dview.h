@@ -32,6 +32,7 @@ public:
 	graphic::cRenderTarget m_renderTarget;
 	phys::cPhysicsEngine m_physics;
 	phys::cPhysicsSync *m_physSync;
+	graphic::cGridLine m_grid;
 
 	int m_boxId;
 	bool m_showGrid;
