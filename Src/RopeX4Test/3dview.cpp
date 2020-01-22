@@ -35,6 +35,11 @@ bool c3DView::Init(cRenderer &renderer)
 	vp.m_vp.Height = (float)size.y;
 	m_renderTarget.Create(renderer, vp, DXGI_FORMAT_R8G8B8A8_UNORM, true, true
 		, DXGI_FORMAT_D24_UNORM_S8_UINT);
+	m_grid.Create(renderer, 200, 200, 1.f, 1.f
+		, (eVertexType::POSITION | eVertexType::COLOR)
+		, cColor(0.6f, 0.6f, 0.6f, 0.5f)
+		, cColor(0.f, 0.f, 0.f, 0.5f)
+	);
 
 	if (!m_physics.InitializePhysx())
 		return false;
@@ -56,7 +61,7 @@ bool c3DView::Init(cRenderer &renderer)
 	for (int i = 0; i < 4; ++i)
 	{
 		const int rootId0 = m_physSync->SpawnSphere(renderer, rootPoss[i], 0.5f);
-		phys::cPhysicsSync::sActorInfo *rootActor0 = m_physSync->FindActorInfo(rootId0);
+		phys::sActorInfo *rootActor0 = m_physSync->FindActorInfo(rootId0);
 		rootActor0->actor->SetKinematic(true);
 		rootIds[i] = rootId0;
 	}
@@ -73,7 +78,7 @@ bool c3DView::Init(cRenderer &renderer)
 	{
 		Transform prevTfm;
 		prevTfm.pos = rootPoss[k];
-		phys::cPhysicsSync::sActorInfo *root = m_physSync->FindActorInfo(rootIds[k]);
+		phys::sActorInfo *root = m_physSync->FindActorInfo(rootIds[k]);
 		root->actor->SetKinematic(true);
 
 		phys::cRigidActor *prev = root->actor;
@@ -85,7 +90,7 @@ bool c3DView::Init(cRenderer &renderer)
 			tfm.pos = pos;
 			tfm.rot.SetRotationZ(MATH_PI / 2.f);
 			const int actorId = m_physSync->SpawnCapsule(renderer, tfm, 0.1f, 0.3f, 100.f);
-			phys::cPhysicsSync::sActorInfo *capsule = m_physSync->FindActorInfo(actorId);
+			phys::sActorInfo *capsule = m_physSync->FindActorInfo(actorId);
 
 			phys::cJoint *joint = new phys::cJoint();
 			joint->CreateSpherical(m_physics, prev, prevTfm, capsule->actor, tfm);
@@ -100,21 +105,22 @@ bool c3DView::Init(cRenderer &renderer)
 	}
 
 	// make box
+	if (1)
 	{
 		Transform tfm;
 		tfm.pos = Vector3(2.5f, rootY - 0.8f - 25 * 0.8f - 1.5f, 2.5f);
 		tfm.scale = Vector3::Ones * 2.7f;
 		const int boxId = m_physSync->SpawnBox(renderer, tfm, 1.f);
-		phys::cPhysicsSync::sActorInfo *box = m_physSync->FindActorInfo(boxId);
+		phys::sActorInfo *box = m_physSync->FindActorInfo(boxId);
 		m_boxId = boxId;
 
 		for (int i = 0; i < 4; ++i)
 		{
-			phys::cPhysicsSync::sActorInfo *capsule = m_physSync->FindActorInfo(ropeIds[i]);
+			phys::sActorInfo *capsule = m_physSync->FindActorInfo(ropeIds[i]);
 			Transform capsuleTfm = capsule->node->m_transform;
 
 			phys::cJoint *joint = new phys::cJoint();
-			//joint->CreateSphericalJoint(m_physics, box->actor, tfm, capsule->actor, capsuleTfm);
+			//joint->CreateSpherical(m_physics, box->actor, tfm, capsule->actor, capsuleTfm);
 			joint->CreateFixed(m_physics, box->actor, tfm, capsule->actor, capsuleTfm);
 			m_physSync->AddJoint(joint);
 		}
@@ -154,7 +160,8 @@ void c3DView::OnPreRender(const float deltaSeconds)
 				p->node->Render(renderer);
 		}
 
-		renderer.RenderAxis();
+		m_grid.Render(renderer);
+		renderer.RenderAxis2();
 		renderer.GetDevContext()->RSSetState(states.CullCounterClockwise());
 	}
 	m_renderTarget.End(renderer);
@@ -349,7 +356,7 @@ void c3DView::OnEventProc(const sf::Event &evt)
 		case sf::Keyboard::Space:
 		{
 			using namespace physx;
-			phys::cPhysicsSync::sActorInfo *box = m_physSync->FindActorInfo(m_boxId);
+			phys::sActorInfo *box = m_physSync->FindActorInfo(m_boxId);
 	
 			//PxVec3 force(10, 0, 0);
 			//box->actor->m_dynamic->addForce(force, PxForceMode::eIMPULSE, true);
@@ -357,7 +364,8 @@ void c3DView::OnEventProc(const sf::Event &evt)
 			//	, PxVec3(-1.f, 0, 0), PxVec3(0.5f,0,0) );
 
 			PxVec3 force(0, 100, 0);
-			box->actor->m_dynamic->addTorque(force, PxForceMode::eIMPULSE, true);
+			if (physx::PxRigidDynamic *p = box->actor->m_actor->is<physx::PxRigidDynamic>())
+				p->addTorque(force, PxForceMode::eIMPULSE, true);
 		}
 		break;
 		}
