@@ -79,7 +79,7 @@ void c3DView::OnPreRender(const float deltaSeconds)
 
 		if (m_physSync)
 		{
-			for (auto &p : m_physSync->m_actors)
+			for (auto &p : m_physSync->m_syncs)
 				p->node->Render(renderer);
 		}
 

@@ -61,7 +61,7 @@ bool c3DView::Init(cRenderer &renderer)
 	for (int i = 0; i < 4; ++i)
 	{
 		const int rootId0 = m_physSync->SpawnSphere(renderer, rootPoss[i], 0.5f);
-		phys::sActorInfo *rootActor0 = m_physSync->FindActorInfo(rootId0);
+		phys::sSyncInfo *rootActor0 = m_physSync->FindSyncInfo(rootId0);
 		rootActor0->actor->SetKinematic(true);
 		rootIds[i] = rootId0;
 	}
@@ -78,7 +78,7 @@ bool c3DView::Init(cRenderer &renderer)
 	{
 		Transform prevTfm;
 		prevTfm.pos = rootPoss[k];
-		phys::sActorInfo *root = m_physSync->FindActorInfo(rootIds[k]);
+		phys::sSyncInfo *root = m_physSync->FindSyncInfo(rootIds[k]);
 		root->actor->SetKinematic(true);
 
 		phys::cRigidActor *prev = root->actor;
@@ -90,7 +90,9 @@ bool c3DView::Init(cRenderer &renderer)
 			tfm.pos = pos;
 			tfm.rot.SetRotationZ(MATH_PI / 2.f);
 			const int actorId = m_physSync->SpawnCapsule(renderer, tfm, 0.1f, 0.3f, 100.f);
-			phys::sActorInfo *capsule = m_physSync->FindActorInfo(actorId);
+			phys::sSyncInfo *capsule = m_physSync->FindSyncInfo(actorId);
+			capsule->actor->SetAngularDamping(0.f);
+			capsule->actor->SetLinearDamping(0.f);
 
 			phys::cJoint *joint = new phys::cJoint();
 			joint->CreateSpherical(m_physics, prev, prevTfm, capsule->actor, tfm);
@@ -111,12 +113,14 @@ bool c3DView::Init(cRenderer &renderer)
 		tfm.pos = Vector3(2.5f, rootY - 0.8f - 25 * 0.8f - 1.5f, 2.5f);
 		tfm.scale = Vector3::Ones * 2.7f;
 		const int boxId = m_physSync->SpawnBox(renderer, tfm, 1.f);
-		phys::sActorInfo *box = m_physSync->FindActorInfo(boxId);
+		phys::sSyncInfo *box = m_physSync->FindSyncInfo(boxId);
+		box->actor->SetAngularDamping(0);
+		box->actor->SetLinearDamping(0);
 		m_boxId = boxId;
 
 		for (int i = 0; i < 4; ++i)
 		{
-			phys::sActorInfo *capsule = m_physSync->FindActorInfo(ropeIds[i]);
+			phys::sSyncInfo *capsule = m_physSync->FindSyncInfo(ropeIds[i]);
 			Transform capsuleTfm = capsule->node->m_transform;
 
 			phys::cJoint *joint = new phys::cJoint();
@@ -156,8 +160,9 @@ void c3DView::OnPreRender(const float deltaSeconds)
 
 		if (m_physSync)
 		{
-			for (auto &p : m_physSync->m_actors)
-				p->node->Render(renderer);
+			for (auto &p : m_physSync->m_syncs)
+				if (p->node)
+					p->node->Render(renderer);
 		}
 
 		m_grid.Render(renderer);
@@ -356,7 +361,7 @@ void c3DView::OnEventProc(const sf::Event &evt)
 		case sf::Keyboard::Space:
 		{
 			using namespace physx;
-			phys::sActorInfo *box = m_physSync->FindActorInfo(m_boxId);
+			phys::sSyncInfo *box = m_physSync->FindSyncInfo(m_boxId);
 	
 			//PxVec3 force(10, 0, 0);
 			//box->actor->m_dynamic->addForce(force, PxForceMode::eIMPULSE, true);
