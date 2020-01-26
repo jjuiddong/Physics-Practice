@@ -286,7 +286,7 @@ void c3DView::OnEventProc(const sf::Event &evt)
 				m_physSync->SpawnBox(GetRenderer(), tfm);
 				break;
 			case 1:
-				m_physSync->SpawnSphere(GetRenderer(), tfm.pos, tfm.scale.Length());
+				m_physSync->SpawnSphere(GetRenderer(), tfm, tfm.scale.Length());
 				break;
 			case 2:
 				m_physSync->SpawnCapsule(GetRenderer(), tfm, tfm.scale.Length()

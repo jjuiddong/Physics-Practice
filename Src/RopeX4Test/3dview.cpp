@@ -60,7 +60,7 @@ bool c3DView::Init(cRenderer &renderer)
 	
 	for (int i = 0; i < 4; ++i)
 	{
-		const int rootId0 = m_physSync->SpawnSphere(renderer, rootPoss[i], 0.5f);
+		const int rootId0 = m_physSync->SpawnSphere(renderer, Transform(rootPoss[i]), 0.5f);
 		phys::sSyncInfo *rootActor0 = m_physSync->FindSyncInfo(rootId0);
 		rootActor0->actor->SetKinematic(true);
 		rootIds[i] = rootId0;
