@@ -41,20 +41,43 @@ void cInformationView::OnRender(const float deltaSeconds)
 		switch (idx)
 		{
 		case 0:
+		{
 			node = g_physics.SpawnBox(renderer, pos, Vector3::Ones * scale);
-			g_physics.m_actors.push_back({ g_physics.CreateBox(pos, Vector3::Ones*scale)
-				, "cube", node });
-			break;
+			auto actor = g_physics.CreateBox(pos, Vector3::Ones * scale);
+			sSyncInfo* sync = new sSyncInfo;
+			sync->actor = actor;
+			sync->name = "cube";
+			sync->node = node;
+			sync->actor->userData = sync;
+			g_physics.m_syncs.push_back(sync);
+		}
+		break;
 
 		case 1:
+		{
 			node = g_physics.SpawnSphere(renderer, pos, scale);
-			g_physics.m_actors.push_back({ g_physics.CreateSphere(pos, scale), "sphere", node });
-			break;
+			auto actor = g_physics.CreateSphere(pos, scale);
+			sSyncInfo* sync = new sSyncInfo;
+			sync->actor = actor;
+			sync->name = "sphere";
+			sync->node = node;
+			sync->actor->userData = sync;
+			g_physics.m_syncs.push_back(sync);
+		}
+		break;
 
 		case 2:
+		{
 			node = g_physics.SpawnCapsule(renderer, pos, scale, scale*2.f);
-			g_physics.m_actors.push_back({ g_physics.CreateCapsule(pos, scale, scale*2.f), "capsule", node });
-			break;
+			auto actor = g_physics.CreateCapsule(pos, scale, scale * 2.f);
+			sSyncInfo* sync = new sSyncInfo;
+			sync->actor = actor;
+			sync->name = "capsule";
+			sync->node = node;
+			sync->actor->userData = sync;
+			g_physics.m_syncs.push_back(sync);
+		}
+		break;
 		}
 		++idx;
 		idx %= 3;
@@ -190,8 +213,20 @@ void cInformationView::RenderFixedJoint()
 				result.actor0->setRigidBodyFlag(PxRigidBodyFlag::eKINEMATIC, m_isKinematic0);
 				result.actor1->setRigidBodyFlag(PxRigidBodyFlag::eKINEMATIC, m_isKinematic1);
 
-				g_physics.m_actors.push_back({ result.actor0, "cube", result.node0 });
-				g_physics.m_actors.push_back({ result.actor1, "cube", result.node1 });
+				sSyncInfo *sync0 = new sSyncInfo;
+				sync0->actor = result.actor0;
+				sync0->name = "cube";
+				sync0->node = result.node0;
+				sync0->actor->userData = sync0;
+				g_physics.m_syncs.push_back(sync0);
+
+				sSyncInfo *sync1 = new sSyncInfo;
+				sync1->actor = result.actor1;
+				sync1->name = "cube";
+				sync1->node = result.node1;
+				sync1->actor->userData = sync1;
+				g_physics.m_syncs.push_back(sync1);
+
 				g_physics.AddJoint(joint);
 			}
 		}
@@ -236,15 +271,27 @@ void cInformationView::RenderSphericalJoint()
 
 				if (m_isLimitJoint)
 				{
-					joint->setLimitCone(PxJointLimitCone(limit.x, limit.y, 0.01f));
+					joint->setLimitCone(PxJointLimitCone(limit.x, limit.y));
 					joint->setSphericalJointFlag(PxSphericalJointFlag::eLIMIT_ENABLED, true);
 				}
 
 				result.actor0->setRigidBodyFlag(PxRigidBodyFlag::eKINEMATIC, m_isKinematic0);
 				result.actor1->setRigidBodyFlag(PxRigidBodyFlag::eKINEMATIC, m_isKinematic1);
 
-				g_physics.m_actors.push_back({ result.actor0, "cube", result.node0 });
-				g_physics.m_actors.push_back({ result.actor1, "cube", result.node1 });
+				sSyncInfo* sync0 = new sSyncInfo;
+				sync0->actor = result.actor0;
+				sync0->name = "cube";
+				sync0->node = result.node0;
+				sync0->actor->userData = sync0;
+				g_physics.m_syncs.push_back(sync0);
+
+				sSyncInfo* sync1 = new sSyncInfo;
+				sync1->actor = result.actor1;
+				sync1->name = "cube";
+				sync1->node = result.node1;
+				sync1->actor->userData = sync1;
+				g_physics.m_syncs.push_back(sync1);
+
 				g_physics.AddJoint(joint);
 			}
 		}
@@ -300,7 +347,7 @@ void cInformationView::RenderRevoluteJoint()
 
 				if (m_isLimitJoint)
 				{
-					joint->setLimit(PxJointAngularLimitPair(limit.x, limit.y, 0.01f));
+					joint->setLimit(PxJointAngularLimitPair(limit.x, limit.y));
 					joint->setRevoluteJointFlag(PxRevoluteJointFlag::eLIMIT_ENABLED, true);
 				}
 
@@ -313,8 +360,19 @@ void cInformationView::RenderRevoluteJoint()
 				result.actor0->setRigidBodyFlag(PxRigidBodyFlag::eKINEMATIC, m_isKinematic0);
 				result.actor1->setRigidBodyFlag(PxRigidBodyFlag::eKINEMATIC, m_isKinematic1);
 
-				g_physics.m_actors.push_back({ result.actor0, "cube", result.node0 });
-				g_physics.m_actors.push_back({ result.actor1, "cube", result.node1 });
+				sSyncInfo* sync0 = new sSyncInfo;
+				sync0->actor = result.actor0;
+				sync0->name = "cube";
+				sync0->node = result.node0;
+				sync0->actor->userData = sync0;
+				g_physics.m_syncs.push_back(sync0);
+
+				sSyncInfo* sync1 = new sSyncInfo;
+				sync1->actor = result.actor1;
+				sync1->name = "cube";
+				sync1->node = result.node1;
+				sync1->actor->userData = sync1;
+				g_physics.m_syncs.push_back(sync1);
 				g_physics.AddJoint(joint);
 			}
 		}
@@ -340,7 +398,7 @@ void cInformationView::RenderPrismaticJoint()
 		ImGui::DragFloat("Lower Limit", &limit.x, 0.001f);
 		ImGui::DragFloat("Upper Limit", &limit.y, 0.001f);
 		ImGui::DragFloat("length Tolerance ", &tolerance.length, 0.001f);
-		ImGui::DragFloat("mass Tolerance ", &tolerance.mass, 0.001f);
+		//ImGui::DragFloat("mass Tolerance ", &tolerance.mass, 0.001f);
 		ImGui::DragFloat("speed Tolerance ", &tolerance.speed, 0.001f);
 
 		const char *axisStr = "X\0Y\0Z\0\0";
@@ -369,15 +427,26 @@ void cInformationView::RenderPrismaticJoint()
 
 				if (m_isLimitJoint)
 				{
-					joint->setLimit(PxJointLinearLimitPair(tolerance, limit.x, limit.y, 0.01f));
+					joint->setLimit(PxJointLinearLimitPair(tolerance, limit.x, limit.y));
 					joint->setPrismaticJointFlag(PxPrismaticJointFlag::eLIMIT_ENABLED, true);
 				}
 
 				result.actor0->setRigidBodyFlag(PxRigidBodyFlag::eKINEMATIC, m_isKinematic0);
 				result.actor1->setRigidBodyFlag(PxRigidBodyFlag::eKINEMATIC, m_isKinematic1);
 
-				g_physics.m_actors.push_back({ result.actor0, "cube", result.node0 });
-				g_physics.m_actors.push_back({ result.actor1, "cube", result.node1 });
+				sSyncInfo* sync0 = new sSyncInfo;
+				sync0->actor = result.actor0;
+				sync0->name = "cube";
+				sync0->node = result.node0;
+				sync0->actor->userData = sync0;
+				g_physics.m_syncs.push_back(sync0);
+
+				sSyncInfo* sync1 = new sSyncInfo;
+				sync1->actor = result.actor1;
+				sync1->name = "cube";
+				sync1->node = result.node1;
+				sync1->actor->userData = sync1;
+				g_physics.m_syncs.push_back(sync1);
 				g_physics.AddJoint(joint);
 			}
 		}
@@ -424,8 +493,19 @@ void cInformationView::RenderDistanceJoint()
 				result.actor0->setRigidBodyFlag(PxRigidBodyFlag::eKINEMATIC, m_isKinematic0);
 				result.actor1->setRigidBodyFlag(PxRigidBodyFlag::eKINEMATIC, m_isKinematic1);
 
-				g_physics.m_actors.push_back({ result.actor0, "cube", result.node0 });
-				g_physics.m_actors.push_back({ result.actor1, "cube", result.node1 });
+				sSyncInfo* sync0 = new sSyncInfo;
+				sync0->actor = result.actor0;
+				sync0->name = "cube";
+				sync0->node = result.node0;
+				sync0->actor->userData = sync0;
+				g_physics.m_syncs.push_back(sync0);
+
+				sSyncInfo* sync1 = new sSyncInfo;
+				sync1->actor = result.actor1;
+				sync1->name = "cube";
+				sync1->node = result.node1;
+				sync1->actor->userData = sync1;
+				g_physics.m_syncs.push_back(sync1);
 				g_physics.AddJoint(joint);
 			}
 		}
@@ -532,8 +612,19 @@ void cInformationView::RenderD6Joint()
 				result.actor0->setRigidBodyFlag(PxRigidBodyFlag::eKINEMATIC, m_isKinematic0);
 				result.actor1->setRigidBodyFlag(PxRigidBodyFlag::eKINEMATIC, m_isKinematic1);
 
-				g_physics.m_actors.push_back({ result.actor0, "cube", result.node0 });
-				g_physics.m_actors.push_back({ result.actor1, "cube", result.node1 });
+				sSyncInfo* sync0 = new sSyncInfo;
+				sync0->actor = result.actor0;
+				sync0->name = "cube";
+				sync0->node = result.node0;
+				sync0->actor->userData = sync0;
+				g_physics.m_syncs.push_back(sync0);
+
+				sSyncInfo* sync1 = new sSyncInfo;
+				sync1->actor = result.actor1;
+				sync1->name = "cube";
+				sync1->node = result.node1;
+				sync1->actor->userData = sync1;
+				g_physics.m_syncs.push_back(sync1);
 				g_physics.AddJoint(joint);
 			}
 		}

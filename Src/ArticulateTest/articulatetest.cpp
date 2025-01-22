@@ -2,6 +2,9 @@
 // PhysX Articulate Test Sample
 //	- use phys::PhysicsEngine
 //
+// 2025-01-19
+//	- migration physx3.4 -> 5.5
+//
 #include "stdafx.h"
 #include "3dview.h"
 

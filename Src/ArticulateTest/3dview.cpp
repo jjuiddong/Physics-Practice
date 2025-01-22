@@ -9,19 +9,40 @@ using namespace framework;
 c3DView::c3DView(const string &name)
 	: framework::cDockWindow(name)
 	, m_showGrid(true)
+	, m_isSimulation(false)
 {
 }
 
 c3DView::~c3DView()
 {
+	// save config variable
+	const Vector3 eyePos = m_camera.m_eyePos;
+	const Vector3 lookAt = m_camera.m_lookAt;
+	common::cConfig config;
+	stringstream ss1;
+	ss1 << eyePos.x << ", " << eyePos.y << ", " << eyePos.z;
+	config.SetValue("eyepos", ss1.str().c_str());
+	stringstream ss2;
+	ss2 << lookAt.x << ", " << lookAt.y << ", " << lookAt.z;
+	config.SetValue("lookat", ss2.str().c_str());
+	config.Write("config.txt");
+	//~
+
 	m_physics.Clear();
 }
 
 
-bool c3DView::Init(cRenderer &renderer)
+bool c3DView::Init(cRenderer& renderer)
 {
-	const Vector3 eyePos(12.0439510f, 29.6167679f, -27.8085155f);
-	const Vector3 lookAt(-10.7197342f, 0.000000000f, 47.5336151f);
+	Vector3 eyePos(26.5719681f, 44.7804565f, -53.4074707f);
+	Vector3 lookAt(0.0922393799f, 0.00000000f, 2.20689774f);
+	common::cConfig config;
+	if (config.Read("config.txt"))
+	{
+		eyePos = config.GetVector3("eyepos", eyePos);
+		lookAt = config.GetVector3("lookat", lookAt);
+	}
+
 	m_camera.SetCamera(eyePos, lookAt, Vector3(0, 1, 0));
 	m_camera.SetProjection(MATH_PI / 4.f, m_rect.Width() / m_rect.Height(), 1.f, 1000000.f);
 	m_camera.SetViewPort(m_rect.Width(), m_rect.Height());
@@ -29,7 +50,7 @@ bool c3DView::Init(cRenderer &renderer)
 	GetMainLight().Init(graphic::cLight::LIGHT_DIRECTIONAL);
 	GetMainLight().SetDirection(Vector3(-1, -2, 1.3f).Normal());
 
-	sf::Vector2u size((u_int)m_rect.Width() - 15, (u_int)m_rect.Height() - 50);
+	sf::Vector2u size((uint)m_rect.Width() - 15, (uint)m_rect.Height() - 50);
 	cViewport vp = renderer.m_viewPort;
 	vp.m_vp.Width = (float)size.x;
 	vp.m_vp.Height = (float)size.y;
@@ -48,131 +69,883 @@ bool c3DView::Init(cRenderer &renderer)
 	m_physSync->Create(&m_physics);
 	m_physSync->SpawnPlane(renderer, Vector3(0, 1, 0));
 
-	using namespace physx;
-	const float rootY = 30.f;
-	Vector3 rootPoss[4] = {
-		Vector3(0, rootY, 0)
-		,  Vector3(0, rootY, 5)
-		,  Vector3(5, rootY, 5)
-		, Vector3(5, rootY, 0)
-	};
-	int rootIds[4];
+	//InitScissorLift1();
+	//InitScissorLift2();
+	InitScissorLift3();
+
 	
-	for (int i = 0; i < 4; ++i)
-	{
-		const int rootId0 = m_physSync->SpawnSphere(renderer, Transform(rootPoss[i]), 0.5f);
-		phys::sSyncInfo *rootActor0 = m_physSync->FindSyncInfo(rootId0);
-		rootActor0->actor->SetKinematic(true);
-		rootIds[i] = rootId0;
-	}
-
-	m_articulation = m_physics.m_physics->createArticulation();
-	m_link = m_articulation->createLink(nullptr, PxTransform(PxVec3(0, 20, 0)));
-	PxRigidActorExt::createExclusiveShape(*m_link, PxBoxGeometry(PxVec3(0.5f, 0.5f, 0.5f))
-		, *m_physics.m_material);
-	PxRigidBodyExt::updateMassAndInertia(*m_link, 1.0f);
-	//m_articulation->setArticulationFlag(PxArticulationFlag::eFIX_BASE, true);
-
-	m_link2 = m_articulation->createLink(m_link, PxTransform(PxVec3(3, 18, 0)));
-	PxRigidActorExt::createExclusiveShape(*m_link2, PxBoxGeometry(PxVec3(0.5f, 0.5f, 0.5f))
-		, *m_physics.m_material);
-	PxRigidBodyExt::updateMassAndInertia(*m_link2, 1.0f);
-
-	m_link3 = m_articulation->createLink(m_link2, PxTransform(PxVec3(3, 16, 0)));
-	PxRigidActorExt::createExclusiveShape(*m_link3, PxBoxGeometry(PxVec3(0.5f, 0.5f, 0.5f))
-		, *m_physics.m_material);
-	PxRigidBodyExt::updateMassAndInertia(*m_link3, 1.0f);
-
-	//m_link2->addForce(PxVec3(100, 0, 0), PxForceMode::eIMPULSE);
-
-	PxArticulationJoint* joint = m_link2->getInboundJoint();
-	joint->setParentPose(PxTransform(PxVec3(0,-2,0)));
-	joint->setChildPose(PxTransform(PxVec3(0, +2, 0)));
-
-	PxArticulationJoint* joint2 = m_link3->getInboundJoint();
-	joint2->setParentPose(PxTransform(PxVec3(0, -2, 0)));
-	joint2->setDriveType(PxArticulationJointDriveType::eTARGET);
-	joint2->setTargetVelocity(PxVec3(10, 0, 0));
-
-
-	//joint2->setDriveType(setsetJointType(PxArticulationJointType::eREVOLUTE);
-	//joint2->setMotion(PxArticulationAxis::eSWING2, PxArticulationMotion::eLIMITED);
-	//joint2->setLimit(PxArticulationAxis::eSWING2, -123.0f*DegToRad, 0.0f);
-	//joint2->setDrive(PxArticulationAxis::eSWING2, stiffness, 0.0f, maxForce);
-
-
-	m_physics.m_scene->addArticulation(*m_articulation);
-	//m_articulation->setSolverIterationCounts(32);
-	m_physics.m_scene->addActor(*m_link);
-	m_physics.m_scene->addActor(*m_link2);
-
 	//m_boxId = m_physSync->SpawnBox(renderer, Transform(Vector3(0, 20, 0), Vector3::Ones*0.5f));
 	m_box.Create(renderer);
-	m_box.SetCube(Transform(Vector3(0, 20, 0), Vector3::Ones*0.5f));
-
-
-
-	// make rope
-	int ropeIds[4];
-	for (int k = 0; k < 1; ++k)
-	{
-		Transform prevTfm;
-		prevTfm.pos = rootPoss[k];
-		phys::sSyncInfo *root = m_physSync->FindSyncInfo(rootIds[k]);
-		root->actor->SetKinematic(true);
-
-		phys::cRigidActor *prev = root->actor;
-		for (int i = 0; i < 0; ++i)
-		{
-			const Vector3 pos(rootPoss[k].x, rootY - 0.8f - i * 0.8f, rootPoss[k].z);
-			
-			Transform tfm;
-			tfm.pos = pos;
-			tfm.rot.SetRotationZ(MATH_PI / 2.f);
-			const int actorId = m_physSync->SpawnCapsule(renderer, tfm, 0.1f, 0.3f, 100.f);
-			phys::sSyncInfo *capsule = m_physSync->FindSyncInfo(actorId);
-
-			//phys::cJoint *joint = new phys::cJoint();
-			//joint->CreateSpherical(m_physics, prev, prevTfm, capsule->actor, tfm);
-			//m_physSync->AddJoint(joint);
-
-			prev = capsule->actor;
-			prevTfm = tfm;
-
-			if (i == 24)
-				ropeIds[k] = actorId;
-		}
-	}
-
-	//// make box
-	//if (1)
-	//{
-	//	Transform tfm;
-	//	tfm.pos = Vector3(2.5f, rootY - 0.8f - 25 * 0.8f - 1.5f, 2.5f);
-	//	tfm.scale = Vector3::Ones * 2.7f;
-	//	const int boxId = m_physSync->SpawnBox(renderer, tfm, 1.f);
-	//	phys::sSyncInfo *box = m_physSync->FindSyncInfo(boxId);
-	//	m_boxId = boxId;
-
-	//	for (int i = 0; i < 4; ++i)
-	//	{
-	//		phys::sSyncInfo *capsule = m_physSync->FindSyncInfo(ropeIds[i]);
-	//		Transform capsuleTfm = capsule->node->m_transform;
-
-	//		phys::cJoint *joint = new phys::cJoint();
-	//		//joint->CreateSpherical(m_physics, box->actor, tfm, capsule->actor, capsuleTfm);
-	//		joint->CreateFixed(m_physics, box->actor, tfm, capsule->actor, capsuleTfm);
-	//		m_physSync->AddJoint(joint);
-	//	}
-	//}
+	m_box.SetCube(Transform(Vector3(0, 0, 0), Vector3::Ones*0.5f));
 
 	return true;
 }
 
 
+// initialize scissor lift1
+void c3DView::InitScissorLift1()
+{
+	using namespace physx;
+
+
+	const PxReal runnerLength = 2.f;
+	const PxReal placementDistance = 1.8f;
+
+	const PxReal cosAng = (placementDistance) / (runnerLength);
+
+	const PxReal angle = PxAcos(cosAng);
+
+	const PxReal sinAng = PxSin(angle);
+
+	const PxQuat leftRot(-angle, PxVec3(1.f, 0.f, 0.f));
+	const PxQuat rightRot(angle, PxVec3(1.f, 0.f, 0.f));
+
+	m_articulation = m_physics.m_physics->createArticulationReducedCoordinate();
+	m_articulation->setArticulationFlag(PxArticulationFlag::eFIX_BASE, true);
+
+	//(1) Create base...
+	PxArticulationLink* base = m_articulation->createLink(NULL, PxTransform(PxVec3(0.f, 0.25f, 0.f)));
+	PxRigidActorExt::createExclusiveShape(*base, PxBoxGeometry(0.5f, 0.25f, 1.5f), *m_physics.m_material);
+	PxRigidBodyExt::updateMassAndInertia(*base, 3.f);
+
+	//Now create the slider and fixed joints...
+
+	m_articulation->setSolverIterationCounts(32);
+
+	PxArticulationLink* leftRoot = m_articulation->createLink(base, PxTransform(PxVec3(0.f, 0.55f, -0.9f)));
+	PxRigidActorExt::createExclusiveShape(*leftRoot, PxBoxGeometry(0.5f, 0.05f, 0.05f), *m_physics.m_material);
+	PxRigidBodyExt::updateMassAndInertia(*leftRoot, 1.f);
+
+	PxArticulationLink* rightRoot = m_articulation->createLink(base, PxTransform(PxVec3(0.f, 0.55f, 0.9f)));
+	PxRigidActorExt::createExclusiveShape(*rightRoot, PxBoxGeometry(0.5f, 0.05f, 0.05f), *m_physics.m_material);
+	PxRigidBodyExt::updateMassAndInertia(*rightRoot, 1.f);
+
+	PxArticulationJointReducedCoordinate* joint = leftRoot->getInboundJoint();
+	joint->setJointType(PxArticulationJointType::eFIX);
+	joint->setParentPose(PxTransform(PxVec3(0.f, 0.25f, -0.9f)));
+	joint->setChildPose(PxTransform(PxVec3(0.f, -0.05f, 0.f)));
+
+	m_driveJoint = rightRoot->getInboundJoint();
+	m_driveJoint->setJointType(PxArticulationJointType::ePRISMATIC);
+	m_driveJoint->setMotion(PxArticulationAxis::eZ, PxArticulationMotion::eLIMITED);
+	m_driveJoint->setLimitParams(PxArticulationAxis::eZ, PxArticulationLimit(-1.4f, 0.2f));
+	m_driveJoint->setDriveParams(PxArticulationAxis::eZ, PxArticulationDrive(100000.f, 0.f, PX_MAX_F32));
+
+	m_driveJoint->setParentPose(PxTransform(PxVec3(0.f, 0.25f, 0.9f)));
+	m_driveJoint->setChildPose(PxTransform(PxVec3(0.f, -0.05f, 0.f)));
+
+	const PxU32 linkHeight = 3;
+	PxArticulationLink* currLeft = leftRoot, * currRight = rightRoot;
+
+	PxQuat rightParentRot(PxIdentity);
+	PxQuat leftParentRot(PxIdentity);
+	for (PxU32 i = 0; i < linkHeight; ++i)
+	{
+		const PxVec3 pos(0.5f, 0.55f + 0.1f * (1 + i), 0.f);
+		PxArticulationLink* leftLink = m_articulation->createLink(currLeft, PxTransform(pos + PxVec3(0.f, sinAng * (2 * i + 1), 0.f), leftRot));
+		PxRigidActorExt::createExclusiveShape(*leftLink, PxBoxGeometry(0.05f, 0.05f, 1.f), *m_physics.m_material);
+		PxRigidBodyExt::updateMassAndInertia(*leftLink, 1.f);
+
+		const PxVec3 leftAnchorLocation = pos + PxVec3(0.f, sinAng * (2 * i), -0.9f);
+
+		joint = leftLink->getInboundJoint();
+		joint->setParentPose(PxTransform(currLeft->getGlobalPose().transformInv(leftAnchorLocation), leftParentRot));
+		joint->setChildPose(PxTransform(PxVec3(0.f, 0.f, -1.f), rightRot));
+		joint->setJointType(PxArticulationJointType::eREVOLUTE);
+
+		leftParentRot = leftRot;
+
+		joint->setMotion(PxArticulationAxis::eTWIST, PxArticulationMotion::eLIMITED);
+		joint->setLimitParams(PxArticulationAxis::eTWIST, PxArticulationLimit(-PxPi, angle));
+
+
+		PxArticulationLink* rightLink = m_articulation->createLink(currRight, PxTransform(pos + PxVec3(0.f, sinAng * (2 * i + 1), 0.f), rightRot));
+		PxRigidActorExt::createExclusiveShape(*rightLink, PxBoxGeometry(0.05f, 0.05f, 1.f), *m_physics.m_material);
+		PxRigidBodyExt::updateMassAndInertia(*rightLink, 1.f);
+
+		const PxVec3 rightAnchorLocation = pos + PxVec3(0.f, sinAng * (2 * i), 0.9f);
+
+		joint = rightLink->getInboundJoint();
+		joint->setJointType(PxArticulationJointType::eREVOLUTE);
+		joint->setParentPose(PxTransform(currRight->getGlobalPose().transformInv(rightAnchorLocation), rightParentRot));
+		joint->setChildPose(PxTransform(PxVec3(0.f, 0.f, 1.f), leftRot));
+		joint->setMotion(PxArticulationAxis::eTWIST, PxArticulationMotion::eLIMITED);
+		joint->setLimitParams(PxArticulationAxis::eTWIST, PxArticulationLimit(-angle, PxPi));
+
+		rightParentRot = rightRot;
+
+		PxD6Joint* d6joint = PxD6JointCreate(*m_physics.m_physics, leftLink, PxTransform(PxIdentity), rightLink, PxTransform(PxIdentity));
+
+		d6joint->setMotion(PxD6Axis::eTWIST, PxD6Motion::eFREE);
+		d6joint->setMotion(PxD6Axis::eSWING1, PxD6Motion::eFREE);
+		d6joint->setMotion(PxD6Axis::eSWING2, PxD6Motion::eFREE);
+
+		currLeft = rightLink;
+		currRight = leftLink;
+	}
+
+
+	PxArticulationLink* leftTop = m_articulation->createLink(currLeft, currLeft->getGlobalPose().transform(PxTransform(PxVec3(-0.5f, 0.f, -1.0f), leftParentRot)));
+	PxRigidActorExt::createExclusiveShape(*leftTop, PxBoxGeometry(0.5f, 0.05f, 0.05f), *m_physics.m_material);
+	PxRigidBodyExt::updateMassAndInertia(*leftTop, 1.f);
+
+	PxArticulationLink* rightTop = m_articulation->createLink(currRight, currRight->getGlobalPose().transform(PxTransform(PxVec3(-0.5f, 0.f, 1.0f), rightParentRot)));
+	//PxRigidActorExt::createExclusiveShape(*rightTop, PxCapsuleGeometry(0.05f, 0.8f), *m_physics.m_material);
+	PxRigidActorExt::createExclusiveShape(*rightTop, PxBoxGeometry(0.5f, 0.05f, 0.05f), *m_physics.m_material);
+	PxRigidBodyExt::updateMassAndInertia(*rightTop, 1.f);
+
+	joint = leftTop->getInboundJoint();
+	joint->setParentPose(PxTransform(PxVec3(0.f, 0.f, -1.f), currLeft->getGlobalPose().q.getConjugate()));
+	joint->setChildPose(PxTransform(PxVec3(0.5f, 0.f, 0.f), leftTop->getGlobalPose().q.getConjugate()));
+	joint->setJointType(PxArticulationJointType::eREVOLUTE);
+	joint->setMotion(PxArticulationAxis::eTWIST, PxArticulationMotion::eFREE);
+
+	joint = rightTop->getInboundJoint();
+	joint->setParentPose(PxTransform(PxVec3(0.f, 0.f, 1.f), currRight->getGlobalPose().q.getConjugate()));
+	joint->setChildPose(PxTransform(PxVec3(0.5f, 0.f, 0.f), rightTop->getGlobalPose().q.getConjugate()));
+	joint->setJointType(PxArticulationJointType::eREVOLUTE);
+	joint->setMotion(PxArticulationAxis::eTWIST, PxArticulationMotion::eFREE);
+
+
+	currLeft = leftRoot;
+	currRight = rightRoot;
+
+	rightParentRot = PxQuat(PxIdentity);
+	leftParentRot = PxQuat(PxIdentity);
+
+
+	for (PxU32 i = 0; i < linkHeight; ++i)
+	{
+		const PxVec3 pos(-0.5f, 0.55f + 0.1f * (1 + i), 0.f);
+		PxArticulationLink* leftLink = m_articulation->createLink(currLeft, PxTransform(pos + PxVec3(0.f, sinAng * (2 * i + 1), 0.f), leftRot));
+		PxRigidActorExt::createExclusiveShape(*leftLink, PxBoxGeometry(0.05f, 0.05f, 1.f), *m_physics.m_material);
+		PxRigidBodyExt::updateMassAndInertia(*leftLink, 1.f);
+
+		const PxVec3 leftAnchorLocation = pos + PxVec3(0.f, sinAng * (2 * i), -0.9f);
+
+		joint = leftLink->getInboundJoint();
+		joint->setJointType(PxArticulationJointType::eREVOLUTE);
+		joint->setParentPose(PxTransform(currLeft->getGlobalPose().transformInv(leftAnchorLocation), leftParentRot));
+		joint->setChildPose(PxTransform(PxVec3(0.f, 0.f, -1.f), rightRot));
+
+		leftParentRot = leftRot;
+
+		joint->setMotion(PxArticulationAxis::eTWIST, PxArticulationMotion::eLIMITED);
+		joint->setLimitParams(PxArticulationAxis::eTWIST, PxArticulationLimit(-PxPi, angle));
+
+		PxArticulationLink* rightLink = m_articulation->createLink(currRight, PxTransform(pos + PxVec3(0.f, sinAng * (2 * i + 1), 0.f), rightRot));
+		PxRigidActorExt::createExclusiveShape(*rightLink, PxBoxGeometry(0.05f, 0.05f, 1.f), *m_physics.m_material);
+		PxRigidBodyExt::updateMassAndInertia(*rightLink, 1.f);
+
+		const PxVec3 rightAnchorLocation = pos + PxVec3(0.f, sinAng * (2 * i), 0.9f);
+
+		/*joint = PxD6JointCreate(getPhysics(), currRight, PxTransform(currRight->getGlobalPose().transformInv(rightAnchorLocation)),
+		rightLink, PxTransform(PxVec3(0.f, 0.f, 1.f)));*/
+
+		joint = rightLink->getInboundJoint();
+		joint->setParentPose(PxTransform(currRight->getGlobalPose().transformInv(rightAnchorLocation), rightParentRot));
+		joint->setJointType(PxArticulationJointType::eREVOLUTE);
+		joint->setChildPose(PxTransform(PxVec3(0.f, 0.f, 1.f), leftRot));
+		joint->setMotion(PxArticulationAxis::eTWIST, PxArticulationMotion::eLIMITED);
+		joint->setLimitParams(PxArticulationAxis::eTWIST, PxArticulationLimit(-angle, PxPi));
+
+		rightParentRot = rightRot;
+
+		PxD6Joint* d6joint = PxD6JointCreate(*m_physics.m_physics, leftLink, PxTransform(PxIdentity), rightLink, PxTransform(PxIdentity));
+
+		d6joint->setMotion(PxD6Axis::eTWIST, PxD6Motion::eFREE);
+		d6joint->setMotion(PxD6Axis::eSWING1, PxD6Motion::eFREE);
+		d6joint->setMotion(PxD6Axis::eSWING2, PxD6Motion::eFREE);
+
+		currLeft = rightLink;
+		currRight = leftLink;
+	}
+
+	PxD6Joint* d6joint = PxD6JointCreate(*m_physics.m_physics, currLeft, PxTransform(PxVec3(0.f, 0.f, -1.f)), leftTop, PxTransform(PxVec3(-0.5f, 0.f, 0.f)));
+
+	d6joint->setMotion(PxD6Axis::eTWIST, PxD6Motion::eFREE);
+	d6joint->setMotion(PxD6Axis::eSWING1, PxD6Motion::eFREE);
+	d6joint->setMotion(PxD6Axis::eSWING2, PxD6Motion::eFREE);
+
+	d6joint = PxD6JointCreate(*m_physics.m_physics, currRight, PxTransform(PxVec3(0.f, 0.f, 1.f)), rightTop, PxTransform(PxVec3(-0.5f, 0.f, 0.f)));
+
+	d6joint->setMotion(PxD6Axis::eTWIST, PxD6Motion::eFREE);
+	d6joint->setMotion(PxD6Axis::eSWING1, PxD6Motion::eFREE);
+	d6joint->setMotion(PxD6Axis::eSWING2, PxD6Motion::eFREE);
+
+
+	const PxTransform topPose(PxVec3(0.f, leftTop->getGlobalPose().p.y + 0.15f, 0.f));
+
+	PxArticulationLink* top = m_articulation->createLink(leftTop, topPose);
+	PxRigidActorExt::createExclusiveShape(*top, PxBoxGeometry(0.5f, 0.1f, 1.5f), *m_physics.m_material);
+	PxRigidBodyExt::updateMassAndInertia(*top, 1.f);
+
+	joint = top->getInboundJoint();
+	joint->setJointType(PxArticulationJointType::eFIX);
+	joint->setParentPose(PxTransform(PxVec3(0.f, 0.0f, 0.f)));
+	joint->setChildPose(PxTransform(PxVec3(0.f, -0.15f, -0.9f)));
+
+
+	for (PxU32 i = 0; i < m_articulation->getNbLinks(); ++i)
+	{
+		PxArticulationLink* link;
+		m_articulation->getLinks(&link, 1, i);
+
+		link->setLinearDamping(0.2f);
+		link->setAngularDamping(0.2f);
+
+		link->setMaxAngularVelocity(20.f);
+		link->setMaxLinearVelocity(100.f);
+
+		if (link != top)
+		{
+			for (PxU32 b = 0; b < link->getNbShapes(); ++b)
+			{
+				PxShape* shape;
+				link->getShapes(&shape, 1, b);
+
+				shape->setSimulationFilterData(PxFilterData(0, 0, 1, 0));
+			}
+		}
+	}
+
+	m_physics.m_scene->addArticulation(*m_articulation);
+}
+
+
+// create articulation link
+physx::PxArticulationLink* c3DView::CreateLink(physx::PxArticulationLink* parent
+	, const Transform& tfm
+	, const float mass //= 1.f
+)
+{
+	using namespace physx;
+
+	RETV(!m_articulation, nullptr);
+
+	PxArticulationLink* link = m_articulation->createLink(parent
+		, PxTransform(*(PxVec3*)&tfm.pos, *(PxQuat*)&tfm.rot));
+
+	PxRigidActorExt::createExclusiveShape(*link
+		, PxBoxGeometry(tfm.scale.x, tfm.scale.y, tfm.scale.z)
+		, *m_physics.m_material);
+
+	PxRigidBodyExt::updateMassAndInertia(*link, mass);
+
+	return link;
+}
+
+
+void GetLocalFrame(const Transform& worldTm0, const Transform& worldTm1
+	, const Vector3& jointPos, const Vector3& revoluteAxis
+	, OUT physx::PxTransform& out0, OUT physx::PxTransform& out1)
+{
+	using namespace physx;
+
+	Transform tfm0 = worldTm0;
+	Transform tfm1 = worldTm1;
+
+	Vector3 p0 = jointPos - tfm0.pos;
+	Vector3 p1 = jointPos - tfm1.pos;
+	Quaternion q0 = tfm0.rot.Inverse();
+	Quaternion q1 = tfm1.rot.Inverse();
+
+	if (revoluteAxis != Vector3::Zeroes)
+	{
+		Quaternion rot(revoluteAxis, Vector3(1, 0, 0));
+		tfm0.rot *= rot;
+		tfm1.rot *= rot;
+
+		p0 = (tfm0.pos - jointPos) * rot + jointPos;
+		p1 = (tfm1.pos - jointPos) * rot + jointPos;
+		p0 = jointPos - p0;
+		p1 = jointPos - p1;
+		q0 = tfm0.rot.Inverse();
+		q1 = tfm1.rot.Inverse();
+	}
+
+	const PxTransform localFrame0 = PxTransform(*(PxQuat*)&q0) * PxTransform(*(PxVec3*)&p0);
+	const PxTransform localFrame1 = PxTransform(*(PxQuat*)&q1) * PxTransform(*(PxVec3*)&p1);
+
+	out0 = localFrame0;
+	out1 = localFrame1;
+}
+
+
+// create articulation joint
+physx::PxArticulationJointReducedCoordinate* c3DView::CreateJoint(
+	physx::PxArticulationLink* link
+	, const Transform& worldTfm0, const Vector3& pivot0
+	, const Transform& worldTfm1, const Vector3& pivot1
+	, const physx::PxArticulationJointType::Enum jointType
+)
+{
+	using namespace physx;
+
+	RETV(!m_articulation || !link, nullptr);
+
+	PxTransform localFrame0, localFrame1;
+	const Vector3 jointPos = (pivot0 + pivot1) / 2.f;
+	GetLocalFrame(worldTfm0, worldTfm1, jointPos, Vector3::Zeroes, localFrame0, localFrame1);
+
+	PxArticulationJointReducedCoordinate* joint = link->getInboundJoint();
+	joint->setJointType(jointType);
+	joint->setParentPose(localFrame0);
+	joint->setChildPose(localFrame1);
+
+	return joint;
+}
+
+
+// initialize scissor lift2
+void c3DView::InitScissorLift2()
+{
+	using namespace physx;
+
+	m_jointPoss.clear();
+
+	const PxReal runnerLength = 2.f;
+	const PxReal placementDistance = 1.8f;
+
+	const PxReal cosAng = (placementDistance) / (runnerLength);
+	const PxReal angle = PxAcos(cosAng);
+	const PxReal sinAng = PxSin(angle);
+
+	const Quaternion leftRot(Vector3(1, 0, 0), -angle);
+	const Quaternion rightRot(Vector3(1, 0, 0), angle);
+
+	m_articulation = m_physics.m_physics->createArticulationReducedCoordinate();
+	m_articulation->setArticulationFlag(PxArticulationFlag::eFIX_BASE, true);
+
+	//(1) Create base...
+	const Transform baseTfm(Vector3(0.f, 0.25f, 0.f), Vector3(0.5f, 0.25f, 1.5f));
+	PxArticulationLink* base = CreateLink(nullptr, baseTfm, 3.f);
+
+	m_articulation->setSolverIterationCounts(32);
+
+	const Transform leftRootTfm(Vector3(0.f, 0.55f, -0.9f), Vector3(0.5f, 0.05f, 0.05f));
+	PxArticulationLink* leftRoot = CreateLink(base, leftRootTfm);
+	const Transform rightRootTfm(Vector3(0.f, 0.55f, 0.9f), Vector3(0.5f, 0.05f, 0.05f));
+	PxArticulationLink* rightRoot = CreateLink(base, rightRootTfm);
+
+	PxArticulationJointReducedCoordinate* joint = 
+		CreateJoint(leftRoot, baseTfm, baseTfm.pos
+			, leftRootTfm, leftRootTfm.pos
+			, PxArticulationJointType::eFIX);
+
+	m_driveJoint = CreateJoint(rightRoot, baseTfm, baseTfm.pos
+			, rightRootTfm, rightRootTfm.pos
+			, PxArticulationJointType::ePRISMATIC);
+
+	m_driveJoint->setMotion(PxArticulationAxis::eZ, PxArticulationMotion::eLIMITED);
+	m_driveJoint->setLimitParams(PxArticulationAxis::eZ, PxArticulationLimit(-1.4f, 0.2f));
+	m_driveJoint->setDriveParams(PxArticulationAxis::eZ, PxArticulationDrive(100000.f, 0.f, PX_MAX_F32));
+
+	const PxU32 linkHeight = 3;
+	PxArticulationLink* currLeft = leftRoot, * currRight = rightRoot;
+
+	Transform leftParentTfm = leftRootTfm;
+	Transform rightParentTfm = rightRootTfm;
+	Vector3 leftParentAnchorPos = leftRootTfm.pos;
+	Vector3 rightParentAnchorPos = rightRootTfm.pos;
+
+	for (PxU32 i = 0; i < linkHeight; ++i)
+	{
+		const Vector3 pos(0.5f, 0.55f + 0.1f * (1 + i) + sinAng + sinAng * (i * 2), 0.f);
+
+		const Transform leftTfm(pos, Vector3(0.05f, 0.05f, 1.f), leftRot);
+		PxArticulationLink* leftLink = CreateLink(currLeft, leftTfm);
+
+		const Vector3 leftAnchorPos = leftParentAnchorPos + Vector3(0.5f, 0, 0);
+
+		joint = CreateJoint(leftLink, leftParentTfm, leftParentAnchorPos
+			, leftTfm, leftAnchorPos, PxArticulationJointType::eREVOLUTE);
+		joint->setMotion(PxArticulationAxis::eTWIST, PxArticulationMotion::eLIMITED);
+		joint->setLimitParams(PxArticulationAxis::eTWIST, PxArticulationLimit(-PxPi, angle));
+
+
+		const Transform rightTfm(pos, Vector3(0.05f, 0.05f, 1.f), rightRot);
+		PxArticulationLink* rightLink = CreateLink(currRight, rightTfm);
+
+		const Vector3 rightAnchorPos = rightParentAnchorPos + Vector3(0.5f, 0, 0);
+
+		joint = CreateJoint(rightLink, rightParentTfm, rightParentAnchorPos
+			, rightTfm, rightAnchorPos, PxArticulationJointType::eREVOLUTE);
+		joint->setMotion(PxArticulationAxis::eTWIST, PxArticulationMotion::eLIMITED);
+		joint->setLimitParams(PxArticulationAxis::eTWIST, PxArticulationLimit(-angle, PxPi));
+
+
+		m_jointPoss.push_back(leftAnchorPos);
+		m_jointPoss.push_back(rightAnchorPos);
+
+		leftParentTfm = rightTfm;
+		leftParentAnchorPos = leftAnchorPos + Vector3(-0.5f, sinAng * 2 + 0.1f, 0);
+
+		rightParentTfm = leftTfm;
+		rightParentAnchorPos = rightAnchorPos + Vector3(-0.5f, sinAng * 2 + 0.1f, 0);
+
+
+		const Vector3 pivot0 = leftTfm.pos;
+		const Vector3 pivot1 = rightTfm.pos;
+		const Vector3 revoluteAxis(1, 0, 0);
+
+		PxTransform localFrame0, localFrame1;
+		const Vector3 jointPos = (pivot0 + pivot1) / 2.f;
+		GetLocalFrame(leftTfm, rightTfm, jointPos
+			, revoluteAxis, localFrame0, localFrame1);
+
+		PxD6Joint* d6Joint = PxD6JointCreate(*m_physics.m_physics
+			, leftLink, localFrame0, rightLink, localFrame1);
+
+		d6Joint->setMotion(PxD6Axis::eTWIST, PxD6Motion::eFREE);
+		d6Joint->setMotion(PxD6Axis::eSWING1, PxD6Motion::eFREE);
+		d6Joint->setMotion(PxD6Axis::eSWING2, PxD6Motion::eFREE);
+
+		currLeft = rightLink;
+		currRight = leftLink;
+	}//~for
+
+	const Transform leftTfm(leftParentAnchorPos, Vector3(0.5f, 0.05f, 0.05f));
+	PxArticulationLink* leftTop = CreateLink(currLeft, leftTfm);
+
+	const Vector3 leftAnchorPos = leftParentAnchorPos + Vector3(0.5f, 0, 0);
+
+	joint = CreateJoint(leftTop, leftParentTfm, leftParentAnchorPos
+		, leftTfm, leftAnchorPos, PxArticulationJointType::eREVOLUTE);
+	joint->setMotion(PxArticulationAxis::eTWIST, PxArticulationMotion::eFREE);
+
+
+	const Transform rightTfm(rightParentAnchorPos, Vector3(0.5f, 0.05f, 0.05f));
+	PxArticulationLink* rightTop = CreateLink(currRight, rightTfm);
+
+	const Vector3 rightAnchorPos = rightParentAnchorPos + Vector3(0.5f, 0, 0);
+
+	joint = CreateJoint(rightTop, rightParentTfm, rightParentAnchorPos
+		, rightTfm, rightAnchorPos, PxArticulationJointType::eREVOLUTE);
+	joint->setMotion(PxArticulationAxis::eTWIST, PxArticulationMotion::eFREE);
+
+
+	currLeft = leftRoot;
+	currRight = rightRoot;
+
+	leftParentTfm = leftRootTfm;
+	rightParentTfm = rightRootTfm;
+	leftParentAnchorPos = leftRootTfm.pos;
+	rightParentAnchorPos = rightRootTfm.pos;
+
+	for (PxU32 i = 0; i < linkHeight; ++i)
+	{
+		const Vector3 pos(-0.5f, 0.55f + 0.1f * (1 + i) + sinAng + sinAng * (i * 2), 0.f);
+
+		const Transform leftTfm(pos, Vector3(0.05f, 0.05f, 1.f), leftRot);
+		PxArticulationLink* leftLink = CreateLink(currLeft, leftTfm);
+
+		const Vector3 leftAnchorPos = leftParentAnchorPos + Vector3(-0.5f, 0, 0);
+
+		joint = CreateJoint(leftLink, leftParentTfm, leftParentAnchorPos
+			, leftTfm, leftAnchorPos, PxArticulationJointType::eREVOLUTE);
+		joint->setMotion(PxArticulationAxis::eTWIST, PxArticulationMotion::eLIMITED);
+		joint->setLimitParams(PxArticulationAxis::eTWIST, PxArticulationLimit(-PxPi, angle));
+
+
+		const Transform rightTfm(pos, Vector3(0.05f, 0.05f, 1.f), rightRot);
+		PxArticulationLink* rightLink = CreateLink(currRight, rightTfm);
+
+		const Vector3 rightAnchorPos = rightParentAnchorPos + Vector3(-0.5f, 0, 0);
+
+		joint = CreateJoint(rightLink, rightParentTfm, rightParentAnchorPos
+			, rightTfm, rightAnchorPos, PxArticulationJointType::eREVOLUTE);
+		joint->setMotion(PxArticulationAxis::eTWIST, PxArticulationMotion::eLIMITED);
+		joint->setLimitParams(PxArticulationAxis::eTWIST, PxArticulationLimit(-angle, PxPi));
+
+
+		m_jointPoss.push_back(leftAnchorPos);
+		m_jointPoss.push_back(rightAnchorPos);
+
+		leftParentTfm = rightTfm;
+		leftParentAnchorPos = leftAnchorPos + Vector3(0.5f, sinAng * 2 + 0.1f, 0);
+
+		rightParentTfm = leftTfm;
+		rightParentAnchorPos = rightAnchorPos + Vector3(0.5f, sinAng * 2 + 0.1f, 0);
+
+
+		const Vector3 pivot0 = leftTfm.pos;
+		const Vector3 pivot1 = rightTfm.pos;
+		const Vector3 revoluteAxis(1, 0, 0);
+
+		PxTransform localFrame0, localFrame1;
+		const Vector3 jointPos = (pivot0 + pivot1) / 2.f;
+		GetLocalFrame(leftTfm, rightTfm, jointPos
+			, revoluteAxis, localFrame0, localFrame1);
+
+		PxD6Joint* d6Joint = PxD6JointCreate(*m_physics.m_physics
+			, leftLink, localFrame0, rightLink, localFrame1);
+
+		d6Joint->setMotion(PxD6Axis::eTWIST, PxD6Motion::eFREE);
+		d6Joint->setMotion(PxD6Axis::eSWING1, PxD6Motion::eFREE);
+		d6Joint->setMotion(PxD6Axis::eSWING2, PxD6Motion::eFREE);
+
+		currLeft = rightLink;
+		currRight = leftLink;
+	}//~for
+
+	{
+		const Vector3 pivot0 = leftParentAnchorPos;
+		const Vector3 pivot1 = leftParentAnchorPos + Vector3(0.5f, 0, 0);
+		const Vector3 revoluteAxis(1, 0, 0);
+
+		PxTransform localFrame0, localFrame1;
+		const Vector3 jointPos = (pivot0 + pivot1) / 2.f;
+		GetLocalFrame(leftParentTfm, leftTfm, jointPos
+			, revoluteAxis, localFrame0, localFrame1);
+
+		PxD6Joint* d6Joint = PxD6JointCreate(*m_physics.m_physics
+			, currLeft, localFrame0, leftTop, localFrame1);
+
+		d6Joint->setMotion(PxD6Axis::eTWIST, PxD6Motion::eFREE);
+		d6Joint->setMotion(PxD6Axis::eSWING1, PxD6Motion::eFREE);
+		d6Joint->setMotion(PxD6Axis::eSWING2, PxD6Motion::eFREE);
+	}
+
+	{
+		const Vector3 pivot0 = rightParentAnchorPos;
+		const Vector3 pivot1 = rightParentAnchorPos + Vector3(0.5f, 0, 0);
+		const Vector3 revoluteAxis(1, 0, 0);
+
+		PxTransform localFrame0, localFrame1;
+		const Vector3 jointPos = (pivot0 + pivot1) / 2.f;
+		GetLocalFrame(rightParentTfm, rightTfm, jointPos
+			, revoluteAxis, localFrame0, localFrame1);
+
+		PxD6Joint* d6Joint = PxD6JointCreate(*m_physics.m_physics
+			, currRight, localFrame0, rightTop, localFrame1);
+
+		d6Joint->setMotion(PxD6Axis::eTWIST, PxD6Motion::eFREE);
+		d6Joint->setMotion(PxD6Axis::eSWING1, PxD6Motion::eFREE);
+		d6Joint->setMotion(PxD6Axis::eSWING2, PxD6Motion::eFREE);
+	}
+
+	const Transform topPose(Vector3(0, leftTfm.pos.y + 0.15f, 0), Vector3(0.5f, 0.1f, 1.5f));
+	PxArticulationLink* top = CreateLink(leftTop, topPose);
+
+	joint = CreateJoint(top, leftTfm, leftTfm.pos
+		, topPose, topPose.pos, PxArticulationJointType::eFIX);
+
+	for (PxU32 i = 0; i < m_articulation->getNbLinks(); ++i)
+	{
+		PxArticulationLink* link;
+		m_articulation->getLinks(&link, 1, i);
+
+		link->setLinearDamping(0.2f);
+		link->setAngularDamping(0.2f);
+
+		link->setMaxAngularVelocity(20.f);
+		link->setMaxLinearVelocity(100.f);
+
+		if (link != top)
+		{
+			for (PxU32 b = 0; b < link->getNbShapes(); ++b)
+			{
+				PxShape* shape;
+				link->getShapes(&shape, 1, b);
+
+				shape->setSimulationFilterData(PxFilterData(0, 0, 1, 0));
+			}
+		}
+	}
+
+	// set up the box stack
+	graphic::cRenderer& renderer = GetRenderer();
+
+	const Vector3 halfExt(Vector3::Ones * 0.25f);
+	const float density = 0.5f;
+	const float contactOffset = 0.2f;
+
+	const int id0 = m_physSync->SpawnBox(renderer, Transform(Vector3(-0.25f, 5.f, 0.5f), halfExt), density);
+	const int id1 = m_physSync->SpawnBox(renderer, Transform(Vector3(0.25f, 5.f, 0.5f), halfExt), density);
+	const int id2 = m_physSync->SpawnBox(renderer, Transform(Vector3(-0.25f, 4.5f, 0.5f), halfExt), density);
+	const int id3 = m_physSync->SpawnBox(renderer, Transform(Vector3(0.25f, 4.5f, 0.5f), halfExt), density);
+	const int id4 = m_physSync->SpawnBox(renderer, Transform(Vector3(-0.25f, 5.f, 0.f), halfExt), density);
+	const int id5 = m_physSync->SpawnBox(renderer, Transform(Vector3(0.25f, 5.f, 0.f), halfExt), density);
+	const int id6 = m_physSync->SpawnBox(renderer, Transform(Vector3(-0.25f, 4.5f, 0.f), halfExt), density);
+	const int id7 = m_physSync->SpawnBox(renderer, Transform(Vector3(0.25f, 4.5f, 0.f), halfExt), density);
+
+	if (phys::sSyncInfo *p = m_physSync->FindSyncInfo(id0))
+		p->actor->SetContactOffset(contactOffset);
+	if (phys::sSyncInfo* p = m_physSync->FindSyncInfo(id1))
+		p->actor->SetContactOffset(contactOffset);
+	if (phys::sSyncInfo* p = m_physSync->FindSyncInfo(id2))
+		p->actor->SetContactOffset(contactOffset);
+	if (phys::sSyncInfo* p = m_physSync->FindSyncInfo(id3))
+		p->actor->SetContactOffset(contactOffset);
+	if (phys::sSyncInfo* p = m_physSync->FindSyncInfo(id4))
+		p->actor->SetContactOffset(contactOffset);
+	if (phys::sSyncInfo* p = m_physSync->FindSyncInfo(id5))
+		p->actor->SetContactOffset(contactOffset);
+	if (phys::sSyncInfo* p = m_physSync->FindSyncInfo(id6))
+		p->actor->SetContactOffset(contactOffset);
+	if (phys::sSyncInfo* p = m_physSync->FindSyncInfo(id7))
+		p->actor->SetContactOffset(contactOffset);
+
+
+	m_physics.m_scene->addArticulation(*m_articulation);
+}
+
+
+// initialize scissor lift3
+void c3DView::InitScissorLift3()
+{
+	using namespace physx;
+
+	const PxReal runnerLength = 2.f;
+	const PxReal placementDistance = 1.8f;
+
+	const PxReal cosAng = (placementDistance) / (runnerLength);
+	const PxReal angle = PxAcos(cosAng);
+	const PxReal sinAng = PxSin(angle);
+
+	const Quaternion leftRot(Vector3(1, 0, 0), -angle);
+	const Quaternion rightRot(Vector3(1, 0, 0), angle);
+
+	m_art.Create(m_physics, true, 32);	
+
+	//(1) Create base...
+	const Transform baseTfm(Vector3(0.f, 0.25f, 0.f), Vector3(0.5f, 0.25f, 1.5f));
+	const int baseId = m_art.AddBoxLink(m_physics, -1, baseTfm, 3.f);
+
+	const Transform leftRootTfm(Vector3(0.f, 0.55f, -0.9f), Vector3(0.5f, 0.05f, 0.05f));
+	const int leftRootId = m_art.AddBoxLink(m_physics, baseId, leftRootTfm);
+	const Transform rightRootTfm(Vector3(0.f, 0.55f, 0.9f), Vector3(0.5f, 0.05f, 0.05f));
+	const int rightRootId = m_art.AddBoxLink(m_physics, baseId, rightRootTfm);
+
+	m_art.AddJoint(leftRootId, phys::eJointType::Fixed, baseTfm.pos, leftRootTfm.pos);
+	m_driveJoint = m_art.AddJoint(rightRootId, phys::eJointType::Prismatic, baseTfm.pos, rightRootTfm.pos);
+
+	m_driveJoint->setMotion(PxArticulationAxis::eZ, PxArticulationMotion::eLIMITED);
+	m_driveJoint->setLimitParams(PxArticulationAxis::eZ, PxArticulationLimit(-1.4f, 0.2f));
+	m_driveJoint->setDriveParams(PxArticulationAxis::eZ, PxArticulationDrive(100000.f, 0.f, PX_MAX_F32));
+
+	const PxU32 linkHeight = 3;
+	int currLeft = leftRootId, currRight = rightRootId;
+	PxArticulationJointReducedCoordinate* joint = nullptr;
+
+	Transform leftParentTfm = leftRootTfm;
+	Transform rightParentTfm = rightRootTfm;
+	Vector3 leftParentAnchorPos = leftRootTfm.pos;
+	Vector3 rightParentAnchorPos = rightRootTfm.pos;
+
+	for (PxU32 i = 0; i < linkHeight; ++i)
+	{
+		const Vector3 pos(0.5f, 0.55f + 0.1f * (1 + i) + sinAng + sinAng * (i * 2), 0.f);
+
+		const Transform leftTfm(pos, Vector3(0.05f, 0.05f, 1.f), leftRot);
+		const int leftLinkId = m_art.AddBoxLink(m_physics, currLeft, leftTfm);
+
+		const Vector3 leftAnchorPos = leftParentAnchorPos + Vector3(0.5f, 0, 0);
+		joint = m_art.AddJoint(leftLinkId, phys::eJointType::Revolute, leftParentAnchorPos, leftAnchorPos);
+
+		joint->setMotion(PxArticulationAxis::eTWIST, PxArticulationMotion::eLIMITED);
+		joint->setLimitParams(PxArticulationAxis::eTWIST, PxArticulationLimit(-PxPi, angle));
+
+		const Transform rightTfm(pos, Vector3(0.05f, 0.05f, 1.f), rightRot);
+		const int rightLinkId = m_art.AddBoxLink(m_physics, currRight, rightTfm);
+
+		const Vector3 rightAnchorPos = rightParentAnchorPos + Vector3(0.5f, 0, 0);
+		joint = m_art.AddJoint(rightLinkId, phys::eJointType::Revolute, rightParentAnchorPos, rightAnchorPos);
+
+		joint->setMotion(PxArticulationAxis::eTWIST, PxArticulationMotion::eLIMITED);
+		joint->setLimitParams(PxArticulationAxis::eTWIST, PxArticulationLimit(-angle, PxPi));
+
+		leftParentTfm = rightTfm;
+		leftParentAnchorPos = leftAnchorPos + Vector3(-0.5f, sinAng * 2 + 0.1f, 0);
+
+		rightParentTfm = leftTfm;
+		rightParentAnchorPos = rightAnchorPos + Vector3(-0.5f, sinAng * 2 + 0.1f, 0);
+
+		physx::PxD6Joint *d6Joint = 
+			m_art.AddD6Joint(m_physics, leftLinkId, leftTfm.pos, rightLinkId, rightTfm.pos);
+
+		d6Joint->setMotion(PxD6Axis::eTWIST, PxD6Motion::eFREE);
+		d6Joint->setMotion(PxD6Axis::eSWING1, PxD6Motion::eFREE);
+		d6Joint->setMotion(PxD6Axis::eSWING2, PxD6Motion::eFREE);
+
+		currLeft = rightLinkId;
+		currRight = leftLinkId;
+	}//~for
+
+	const Transform leftTfm(leftParentAnchorPos, Vector3(0.5f, 0.05f, 0.05f));
+	const int leftTop = m_art.AddBoxLink(m_physics, currLeft, leftTfm);
+
+	const Vector3 leftAnchorPos = leftParentAnchorPos + Vector3(0.5f, 0, 0);
+
+	joint = m_art.AddJoint(leftTop, phys::eJointType::Revolute
+		, leftParentAnchorPos, leftAnchorPos);
+	joint->setMotion(PxArticulationAxis::eTWIST, PxArticulationMotion::eFREE);
+
+
+	const Transform rightTfm(rightParentAnchorPos, Vector3(0.5f, 0.05f, 0.05f));
+	const int rightTop = m_art.AddBoxLink(m_physics, currRight, rightTfm);
+
+	const Vector3 rightAnchorPos = rightParentAnchorPos + Vector3(0.5f, 0, 0);
+
+	joint = m_art.AddJoint(rightTop, phys::eJointType::Revolute
+		, rightParentAnchorPos, rightAnchorPos);
+	joint->setMotion(PxArticulationAxis::eTWIST, PxArticulationMotion::eFREE);
+
+
+	currLeft = leftRootId;
+	currRight = rightRootId;
+
+	leftParentTfm = leftRootTfm;
+	rightParentTfm = rightRootTfm;
+	leftParentAnchorPos = leftRootTfm.pos;
+	rightParentAnchorPos = rightRootTfm.pos;
+
+	for (PxU32 i = 0; i < linkHeight; ++i)
+	{
+		const Vector3 pos(-0.5f, 0.55f + 0.1f * (1 + i) + sinAng + sinAng * (i * 2), 0.f);
+
+		const Transform leftTfm(pos, Vector3(0.05f, 0.05f, 1.f), leftRot);
+		const int leftLinkId = m_art.AddBoxLink(m_physics, currLeft, leftTfm);
+
+		const Vector3 leftAnchorPos = leftParentAnchorPos + Vector3(-0.5f, 0, 0);
+		joint = m_art.AddJoint(leftLinkId, phys::eJointType::Revolute, leftParentAnchorPos, leftAnchorPos);
+
+		joint->setMotion(PxArticulationAxis::eTWIST, PxArticulationMotion::eLIMITED);
+		joint->setLimitParams(PxArticulationAxis::eTWIST, PxArticulationLimit(-PxPi, angle));
+
+		const Transform rightTfm(pos, Vector3(0.05f, 0.05f, 1.f), rightRot);
+		const int rightLinkId = m_art.AddBoxLink(m_physics, currRight, rightTfm);
+
+		const Vector3 rightAnchorPos = rightParentAnchorPos + Vector3(-0.5f, 0, 0);
+		joint = m_art.AddJoint(rightLinkId, phys::eJointType::Revolute, rightParentAnchorPos, rightAnchorPos);
+
+		joint->setMotion(PxArticulationAxis::eTWIST, PxArticulationMotion::eLIMITED);
+		joint->setLimitParams(PxArticulationAxis::eTWIST, PxArticulationLimit(-angle, PxPi));
+
+		leftParentTfm = rightTfm;
+		leftParentAnchorPos = leftAnchorPos + Vector3(0.5f, sinAng * 2 + 0.1f, 0);
+
+		rightParentTfm = leftTfm;
+		rightParentAnchorPos = rightAnchorPos + Vector3(0.5f, sinAng * 2 + 0.1f, 0);
+
+		physx::PxD6Joint* d6Joint =
+			m_art.AddD6Joint(m_physics, leftLinkId, leftTfm.pos, rightLinkId, rightTfm.pos);
+
+		d6Joint->setMotion(PxD6Axis::eTWIST, PxD6Motion::eFREE);
+		d6Joint->setMotion(PxD6Axis::eSWING1, PxD6Motion::eFREE);
+		d6Joint->setMotion(PxD6Axis::eSWING2, PxD6Motion::eFREE);
+
+		currLeft = rightLinkId;
+		currRight = leftLinkId;
+	}//~for
+
+	{
+		physx::PxD6Joint* d6Joint =
+			m_art.AddD6Joint(m_physics, currLeft, leftParentAnchorPos
+				, leftTop, leftParentAnchorPos + Vector3(0.5f, 0, 0));
+
+		d6Joint->setMotion(PxD6Axis::eTWIST, PxD6Motion::eFREE);
+		d6Joint->setMotion(PxD6Axis::eSWING1, PxD6Motion::eFREE);
+		d6Joint->setMotion(PxD6Axis::eSWING2, PxD6Motion::eFREE);
+	}
+
+	{
+		physx::PxD6Joint* d6Joint =
+			m_art.AddD6Joint(m_physics, currRight, rightParentAnchorPos
+				, rightTop, rightParentAnchorPos + Vector3(0.5f, 0, 0));
+
+		d6Joint->setMotion(PxD6Axis::eTWIST, PxD6Motion::eFREE);
+		d6Joint->setMotion(PxD6Axis::eSWING1, PxD6Motion::eFREE);
+		d6Joint->setMotion(PxD6Axis::eSWING2, PxD6Motion::eFREE);
+	}
+
+	const Transform topPose(Vector3(0, leftTfm.pos.y + 0.15f, 0), Vector3(0.5f, 0.1f, 1.5f));
+	const int top = m_art.AddBoxLink(m_physics, leftTop, topPose);
+
+	joint = m_art.AddJoint(top, phys::eJointType::Fixed, leftTfm.pos, topPose.pos);
+	m_art.SetAttribute(0.2f, 0.2f, 100.f, 20.f);
+
+	for (auto &kv : m_art.m_links)
+	{
+		if (kv.first != top)
+		{
+			PxArticulationLink* link = kv.second;
+
+			for (PxU32 b = 0; b < link->getNbShapes(); ++b)
+			{
+				PxShape* shape;
+				link->getShapes(&shape, 1, b);
+
+				shape->setSimulationFilterData(PxFilterData(0, 0, 1, 0));
+			}
+		}
+	}
+
+	// set up the box stack
+	graphic::cRenderer& renderer = GetRenderer();
+
+	const Vector3 halfExt(Vector3::Ones * 0.25f);
+	const float density = 0.5f;
+	const float contactOffset = 0.2f;
+
+	const int id0 = m_physSync->SpawnBox(renderer, Transform(Vector3(-0.25f, 5.f, 0.5f), halfExt), density);
+	const int id1 = m_physSync->SpawnBox(renderer, Transform(Vector3(0.25f, 5.f, 0.5f), halfExt), density);
+	const int id2 = m_physSync->SpawnBox(renderer, Transform(Vector3(-0.25f, 4.5f, 0.5f), halfExt), density);
+	const int id3 = m_physSync->SpawnBox(renderer, Transform(Vector3(0.25f, 4.5f, 0.5f), halfExt), density);
+	const int id4 = m_physSync->SpawnBox(renderer, Transform(Vector3(-0.25f, 5.f, 0.f), halfExt), density);
+	const int id5 = m_physSync->SpawnBox(renderer, Transform(Vector3(0.25f, 5.f, 0.f), halfExt), density);
+	const int id6 = m_physSync->SpawnBox(renderer, Transform(Vector3(-0.25f, 4.5f, 0.f), halfExt), density);
+	const int id7 = m_physSync->SpawnBox(renderer, Transform(Vector3(0.25f, 4.5f, 0.f), halfExt), density);
+
+	if (phys::sSyncInfo* p = m_physSync->FindSyncInfo(id0))
+		p->actor->SetContactOffset(contactOffset);
+	if (phys::sSyncInfo* p = m_physSync->FindSyncInfo(id1))
+		p->actor->SetContactOffset(contactOffset);
+	if (phys::sSyncInfo* p = m_physSync->FindSyncInfo(id2))
+		p->actor->SetContactOffset(contactOffset);
+	if (phys::sSyncInfo* p = m_physSync->FindSyncInfo(id3))
+		p->actor->SetContactOffset(contactOffset);
+	if (phys::sSyncInfo* p = m_physSync->FindSyncInfo(id4))
+		p->actor->SetContactOffset(contactOffset);
+	if (phys::sSyncInfo* p = m_physSync->FindSyncInfo(id5))
+		p->actor->SetContactOffset(contactOffset);
+	if (phys::sSyncInfo* p = m_physSync->FindSyncInfo(id6))
+		p->actor->SetContactOffset(contactOffset);
+	if (phys::sSyncInfo* p = m_physSync->FindSyncInfo(id7))
+		p->actor->SetContactOffset(contactOffset);
+
+	m_art.AddScene(m_physics);
+}
+
+
+static bool gClosing = true;
+
 void c3DView::OnUpdate(const float deltaSeconds)
 {
-	m_physics.PreUpdate(deltaSeconds);
+	if (m_isSimulation)
+	{
+		if (1 && m_driveJoint)
+		{
+			using namespace physx;
+			const PxReal dt = 1.0f / 60.f;
+			PxReal driveValue = m_driveJoint->getDriveTarget(PxArticulationAxis::eZ);
+
+			if (gClosing && driveValue < -1.2f)
+				gClosing = false;
+			else if (!gClosing && driveValue > 0.f)
+				gClosing = true;
+
+			if (gClosing)
+				driveValue -= dt * 0.25f;
+			else
+				driveValue += dt * 0.25f;
+			m_driveJoint->setDriveTarget(PxArticulationAxis::eZ, driveValue);
+		}
+
+		m_physics.PreUpdate(deltaSeconds);
+		m_physics.PostUpdate(deltaSeconds);
+	}
 }
 
 
@@ -185,9 +958,7 @@ void c3DView::OnPreRender(const float deltaSeconds)
 	renderer.UnbindTextureAll();
 
 	GetMainCamera().Bind(renderer);
-	GetMainLight().Bind(renderer);
-
-	m_physics.PostUpdate(deltaSeconds);
+	GetMainLight().Bind(renderer);	
 
 	if (m_renderTarget.Begin(renderer))
 	{
@@ -200,15 +971,64 @@ void c3DView::OnPreRender(const float deltaSeconds)
 				p->node->Render(renderer);
 		}
 
-		//
-		physx::PxTransform pose = m_link2->getGlobalPose();
-		Transform tm = Transform(*(Quaternion*)&pose.q) * Transform(*(Vector3*)&pose.p);
-		m_box.SetCube(tm);
-		m_box.Render(renderer);
+		using namespace physx;
+
+		m_box.SetColor(cColor::WHITE);
+
+		PxShape* shapes[128];
+		uint nbArticulations = m_physics.m_scene->getNbArticulations();
+		for (uint i = 0; i < nbArticulations; i++)
+		{
+			PxArticulationReducedCoordinate* articulation;
+			m_physics.m_scene->getArticulations(&articulation, 1, i);
+
+			const uint nbLinks = articulation->getNbLinks();
+			PxArray<PxArticulationLink*> links(nbLinks);
+			articulation->getLinks(&links[0], nbLinks);
+
+			for (auto& actor : links)
+			{
+				const uint nbShapes = actor->getNbShapes();
+				if (nbShapes > 128) continue;
+				actor->getShapes(shapes, nbShapes);
+
+				for (uint k = 0; k < nbShapes; ++k)
+				{
+					const PxGeometry& geom = shapes[k]->getGeometry();
+					switch (geom.getType())
+					{
+					case PxGeometryType::eBOX:
+					{
+						const PxBoxGeometry& boxGeom = static_cast<const PxBoxGeometry&>(geom);
+						const Vector3 scale(boxGeom.halfExtents.x, boxGeom.halfExtents.y, boxGeom.halfExtents.z);
+
+						const PxTransform pose = actor->getGlobalPose();
+						const Transform tm = Transform(Vector3(), scale) *
+							Transform(*(Quaternion*)&pose.q) * Transform(*(Vector3*)&pose.p);
+						m_box.SetCube(tm);
+						m_box.Render(renderer);
+					}
+					break;
+					default:
+						break;
+					}
+
+				}//~for shapes
+			}//~for links
+		}//~for articulations
 
 
+		m_box.SetColor(cColor::GREEN);
+		for (auto& pos : m_jointPoss)
+		{
+			Transform tm(pos, Vector3::Ones * 0.01f);
+			m_box.SetCube(tm);
+			m_box.Render(renderer);
+		}
 
-		m_grid.Render(renderer);
+
+		if (m_showGrid)
+			m_grid.Render(renderer);
 		renderer.RenderAxis2();
 		renderer.GetDevContext()->RSSetState(states.CullCounterClockwise());
 	}
@@ -239,6 +1059,7 @@ void c3DView::OnRender(const float deltaSeconds)
 	{
 		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 		ImGui::Checkbox("grid", &m_showGrid);
+		ImGui::Checkbox("simulation", &m_isSimulation);		
 		ImGui::Text("Press SpaceBar");
 		ImGui::End();
 	}
@@ -302,21 +1123,42 @@ void c3DView::OnWheelMove(const float delta, const POINT mousePt)
 void c3DView::OnMouseMove(const POINT mousePt)
 {
 	const POINT delta = { mousePt.x - m_mousePos.x, mousePt.y - m_mousePos.y };
+	
+	const POINT prevMousePt = m_mousePos;
 	m_mousePos = mousePt;
 	if (ImGui::IsMouseHoveringRect(ImVec2(-1000, -1000), ImVec2(1000, 200), false))
 		return;
 
 	if (m_mouseDown[0])
 	{
+		const Plane ground(Vector3(0, 1, 0), 0);
+		const Ray ray0 = GetMainCamera().GetRay(prevMousePt.x, prevMousePt.y);
+		const Ray ray1 = GetMainCamera().GetRay(mousePt.x, mousePt.y);
+		const Vector3 p0 = ground.Pick(ray0.orig, ray0.dir);
+		const Vector3 p1 = ground.Pick(ray1.orig, ray1.dir);
+
 		Vector3 dir = GetMainCamera().GetDirection();
-		Vector3 right = GetMainCamera().GetRight();
 		dir.y = 0;
 		dir.Normalize();
+
+		Vector3 right = GetMainCamera().GetRight();
 		right.y = 0;
 		right.Normalize();
 
-		GetMainCamera().MoveRight(-delta.x * m_rotateLen * 0.001f);
-		GetMainCamera().MoveFrontHorizontal(delta.y * m_rotateLen * 0.001f);
+		const float df = dir.DotProduct((p1 - p0));
+		const float dr = right.DotProduct((p1 - p0));
+		GetMainCamera().MoveRight(-dr);
+		GetMainCamera().MoveFrontHorizontal(-df);
+
+		//Vector3 dir = GetMainCamera().GetDirection();
+		//Vector3 right = GetMainCamera().GetRight();
+		//dir.y = 0;
+		//dir.Normalize();
+		//right.y = 0;
+		//right.Normalize();
+
+		//GetMainCamera().MoveRight(-delta.x * m_rotateLen * 0.001f);
+		//GetMainCamera().MoveFrontHorizontal(delta.y * m_rotateLen * 0.001f);
 	}
 	else if (m_mouseDown[1])
 	{

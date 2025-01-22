@@ -21,6 +21,21 @@ public:
 
 
 protected:
+	void InitScissorLift1();
+	void InitScissorLift2();
+	void InitScissorLift3();
+
+	physx::PxArticulationLink* CreateLink(physx::PxArticulationLink* parent
+		, const Transform &tfm, const float mass = 1.f);
+
+	physx::PxArticulationJointReducedCoordinate* CreateJoint(
+		physx::PxArticulationLink* link
+		, const Transform& worldTfm0, const Vector3& pivot0
+		, const Transform& worldTfm1, const Vector3& pivot1
+		, const physx::PxArticulationJointType::Enum jointType
+	);
+
+
 	void UpdateLookAt();
 	void OnWheelMove(const float delta, const POINT mousePt);
 	void OnMouseMove(const POINT mousePt);
@@ -35,10 +50,9 @@ public:
 	graphic::cGridLine m_grid;
 
 	int m_boxId;
-	physx::PxArticulation* m_articulation;
-	physx::PxArticulationLink* m_link;
-	physx::PxArticulationLink* m_link2;
-	physx::PxArticulationLink* m_link3;
+	physx::PxArticulationReducedCoordinate* m_articulation;
+	physx::PxArticulationJointReducedCoordinate* m_driveJoint;
+	phys::cArticulation m_art;
 	graphic::cCube m_box;
 
 	bool m_showGrid;
@@ -50,4 +64,8 @@ public:
 	Vector3 m_mousePickPos; // mouse cursor pos in ground picking
 	bool m_mouseDown[3]; // Left, Right, Middle
 	float m_rotateLen;
+
+	// physx simulation
+	bool m_isSimulation; // start physx simulation?
+	vector<Vector3> m_jointPoss;
 };

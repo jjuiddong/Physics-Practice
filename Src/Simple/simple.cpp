@@ -3,24 +3,33 @@
 //	- reference
 //		- PhysXSample code
 //
+// 2025-01-19
+//	- migration physx3.4 -> 5.5
+//
 #include "stdafx.h"
 #include "PxPhysicsAPI.h"
 
-#if defined(_DEBUG)
-	#pragma comment(lib, "../../../PhysX-3.4/PhysX_3.4/Lib/vc15win32/PhysX3DEBUG_x86.lib")
-	#pragma comment(lib, "../../../PhysX-3.4/PhysX_3.4/lib/vc15win32/PhysX3CookingDEBUG_x86.lib")
-	#pragma comment(lib, "../../../PhysX-3.4/PhysX_3.4/lib/vc15win32/PhysX3CommonDEBUG_x86.lib")
-	#pragma comment(lib, "../../../PhysX-3.4/PhysX_3.4/lib/vc15win32/PhysX3ExtensionsDEBUG.lib")
-	#pragma comment(lib, "../../../PhysX-3.4/PxShared/lib/vc15win32/PxFoundationDEBUG_x86.lib")
-	#pragma comment(lib, "../../../PhysX-3.4/PxShared/lib/vc15win32/PxPvdSDKDEBUG_x86.lib")
-#else
-	#pragma comment(lib, "../../../PhysX-3.4/PhysX_3.4/Lib/vc15win32/PhysX3_x86.lib")
-	#pragma comment(lib, "../../../PhysX-3.4/PhysX_3.4/lib/vc15win32/PhysX3Cooking_x86.lib")
-	#pragma comment(lib, "../../../PhysX-3.4/PhysX_3.4/lib/vc15win32/PhysX3Common_x86.lib")
-	#pragma comment(lib, "../../../PhysX-3.4/PhysX_3.4/lib/vc15win32/PhysX3Extensions.lib")
-	#pragma comment(lib, "../../../PhysX-3.4/PxShared/lib/vc15win32/PxFoundation_x86.lib")
-	#pragma comment(lib, "../../../PhysX-3.4/PxShared/lib/vc15win32/PxPvdSDK_x86.lib")
+#if defined(_WIN64)
+	#if defined(_DEBUG)
+		#pragma comment(lib, "../External/PhysX-5.5/bin/win.x86_64.vc142.md/debug/PhysX_64.lib")
+		#pragma comment(lib, "../External/PhysX-5.5/bin/win.x86_64.vc142.md/debug/PhysXCommon_64.lib")
+		#pragma comment(lib, "../External/PhysX-5.5/bin/win.x86_64.vc142.md/debug/PhysXCooking_64.lib")
+		#pragma comment(lib, "../External/PhysX-5.5/bin/win.x86_64.vc142.md/debug/PhysXFoundation_64.lib")
+		#pragma comment(lib, "../External/PhysX-5.5/bin/win.x86_64.vc142.md/debug/PhysXExtensions_static_64.lib")
+		#pragma comment(lib, "../External/PhysX-5.5/bin/win.x86_64.vc142.md/debug/PhysXPvdSDK_static_64.lib")
+	#else
+		#pragma comment(lib, "../External/PhysX-5.5/bin/win.x86_64.vc142.md/release/PhysX_64.lib")
+		#pragma comment(lib, "../External/PhysX-5.5/bin/win.x86_64.vc142.md/release/PhysXCommon_64.lib")
+		#pragma comment(lib, "../External/PhysX-5.5/bin/win.x86_64.vc142.md/release/PhysXCooking_64.lib")
+		#pragma comment(lib, "../External/PhysX-5.5/bin/win.x86_64.vc142.md/release/PhysXFoundation_64.lib")
+		#pragma comment(lib, "../External/PhysX-5.5/bin/win.x86_64.vc142.md/release/PhysXExtensions_static_64.lib")
+		#pragma comment(lib, "../External/PhysX-5.5/bin/win.x86_64.vc142.md/release/PhysXPvdSDK_static_64.lib")
+	#endif
 #endif
+
+using namespace graphic;
+using namespace framework;
+
 
 class cDefaultErrorCallback : public physx::PxErrorCallback
 {
@@ -47,8 +56,13 @@ struct sPvdParameters
 	}
 };
 
-using namespace graphic;
-using namespace framework;
+struct sSyncInfo 
+{
+	physx::PxRigidActor* actor;
+	string name;
+	cNode* node;
+};
+
 
 class cViewer : public framework::cGameMain2
 				, public physx::PxDeletionListener
@@ -67,7 +81,7 @@ protected:
 	physx::PxRigidActor* CreateGrid();
 	physx::PxRigidDynamic* CreateBox(const Vector3& pos
 		, const Vector3& dims, const Vector3* linVel
-		, float density);
+		, float density, sSyncInfo *sync);
 
 	// PxDeletionListener override
 	virtual void onRelease(const physx::PxBase* observed, void* userData
@@ -80,22 +94,14 @@ public:
 	physx::PxMaterial *m_material;
 	physx::PxPvd *m_pvd;
 	physx::PxPvdTransport *m_transport;
-	physx::PxCooking *m_cooking;
 	physx::PxDefaultAllocator m_defaultAllocatorCallback;
 	physx::PxPvdInstrumentationFlags m_pvdFlags;
 	cDefaultErrorCallback m_defaultErrorCallback;
 	physx::PxDefaultCpuDispatcher *m_cpuDispatcher;
 	physx::PxCudaContextManager *m_cudaContextManager;
 	physx::PxScene *m_scene;
-	uint m_activeBufferCapacity;
-	physx::PxActiveTransform *m_bufferedActiveTransforms;
 
-	struct sActor {
-		physx::PxRigidActor *actor;
-		string name;
-		cNode *node;
-	};
-	vector<sActor> m_actors;
+	vector<sSyncInfo*> m_syncs;
 };
 
 INIT_FRAMEWORK3(cViewer);
@@ -113,24 +119,24 @@ cViewer::cViewer()
 
 cViewer::~cViewer()
 {
-	for (auto &p : m_actors)
+	for (auto &p : m_syncs)
 	{
-		m_scene->removeActor(*p.actor);
-		PX_SAFE_RELEASE(p.actor);
-		SAFE_DELETE(p.node);
+		m_scene->removeActor(*p->actor);
+		PX_SAFE_RELEASE(p->actor);
+		SAFE_DELETE(p->node);
+		delete p;
 	}
+	m_syncs.clear();
 
 	m_physics->unregisterDeletionListener(*this);
 	PX_SAFE_RELEASE(m_scene);
 	PX_SAFE_RELEASE(m_cudaContextManager);
 	PX_SAFE_RELEASE(m_cpuDispatcher);
-	PX_SAFE_RELEASE(m_cooking);
 	PX_SAFE_RELEASE(m_material);	
 	PX_SAFE_RELEASE(m_physics);
 	PX_SAFE_RELEASE(m_pvd);
 	PX_SAFE_RELEASE(m_transport);
 	PX_SAFE_RELEASE(m_foundation);
-	_aligned_free(m_bufferedActiveTransforms);
 }
 
 
@@ -158,6 +164,12 @@ bool cViewer::OnInit()
 
 	cGridLine *gridLine = new cGridLine();
 	gridLine->Create(m_renderer, 100, 100, 1.f, 1.f);
+	
+	sSyncInfo* sync1 = new sSyncInfo;
+	sync1->actor = CreateGrid();
+	sync1->name = "grid";
+	sync1->node = gridLine;
+	m_syncs.push_back(sync1);
 
 	cCube *cube = new cCube();
 	cube->Create(m_renderer);
@@ -168,12 +180,11 @@ bool cViewer::OnInit()
 	tfm.scale = Vector3(1, 1, 1) * boxScale;
 	cube->SetCube(tfm);
 
-	m_actors.push_back({ CreateGrid(), "grid", gridLine });
-	m_actors.push_back({ CreateBox(boxPos, Vector3::Ones*boxScale, nullptr, 1.f), "cube", cube });
-
-	m_activeBufferCapacity = m_actors.size();
-	m_bufferedActiveTransforms = (physx::PxActiveTransform*)_aligned_malloc(
-		sizeof(physx::PxActiveTransform) * m_actors.size(), 16);
+	sSyncInfo* sync2 = new sSyncInfo;
+	sync2->actor = CreateBox(boxPos, Vector3::Ones * boxScale, nullptr, 1.f, sync2);
+	sync2->name = "cube";
+	sync2->node = cube;
+	m_syncs.push_back(sync2);
 
 	m_gui.SetContext();
 	m_gui.SetStyleColorsDark();
@@ -184,7 +195,7 @@ bool cViewer::OnInit()
 
 bool cViewer::InitializePhysx()
 {
-	m_foundation = PxCreateFoundation(PX_FOUNDATION_VERSION
+	m_foundation = PxCreateFoundation(PX_PHYSICS_VERSION
 		, m_defaultAllocatorCallback, m_defaultErrorCallback);
 
 	// pvd connection
@@ -215,9 +226,6 @@ bool cViewer::InitializePhysx()
 	params.meshWeldTolerance = 0.001f;
 	params.meshPreprocessParams = physx::PxMeshPreprocessingFlags(physx::PxMeshPreprocessingFlag::eWELD_VERTICES);
 	params.buildGPUData = true; //Enable GRB data being produced in cooking.
-	m_cooking = PxCreateCooking(PX_PHYSICS_VERSION, *m_foundation, params);
-	if (!m_cooking)
-		return false;
 
 	// scene initialize
 	physx::PxSceneDesc sceneDesc(m_physics->getTolerancesScale());
@@ -243,8 +251,6 @@ bool cViewer::InitializePhysx()
 			PX_SAFE_RELEASE(m_cudaContextManager);
 		}
 	}
-	if (!sceneDesc.gpuDispatcher && m_cudaContextManager)
-		sceneDesc.gpuDispatcher = m_cudaContextManager->getGpuDispatcher();
 
 	//sceneDesc.frictionType = physx::PxFrictionType::eTWO_DIRECTIONAL;
 	//sceneDesc.frictionType = physx::PxFrictionType::eONE_DIRECTIONAL;
@@ -253,7 +259,8 @@ bool cViewer::InitializePhysx()
 	//sceneDesc.flags |= physx::PxSceneFlag::eENABLE_AVERAGE_POINT;
 	sceneDesc.flags |= physx::PxSceneFlag::eENABLE_STABILIZATION;
 	//sceneDesc.flags |= physx::PxSceneFlag::eADAPTIVE_FORCE;
-	sceneDesc.flags |= physx::PxSceneFlag::eENABLE_ACTIVETRANSFORMS;
+	//sceneDesc.flags |= physx::PxSceneFlag::eENABLE_ACTIVETRANSFORMS; // Physx 3.4
+	sceneDesc.flags |= physx::PxSceneFlag::eENABLE_ACTIVE_ACTORS; // Physx 4.0
 	sceneDesc.sceneQueryUpdateMode = physx::PxSceneQueryUpdateMode::eBUILD_ENABLED_COMMIT_DISABLED;
 	//sceneDesc.flags |= physx::PxSceneFlag::eDISABLE_CONTACT_CACHE;
 	sceneDesc.broadPhaseType = physx::PxBroadPhaseType::eGPU;
@@ -297,8 +304,15 @@ void cViewer::OnUpdate(const float deltaSeconds)
 	__super::OnUpdate(deltaSeconds);
 	GetMainCamera().Update(deltaSeconds);
 
-	physx::PxSceneWriteLock writeLock(*m_scene);
-	m_scene->simulate(0.01f, nullptr);
+	const float step = 1.f / 60.f;
+	static float dt = 0.f;
+	dt += deltaSeconds;
+	if (dt > step)
+	{
+		dt -= step;
+		physx::PxSceneWriteLock writeLock(*m_scene);
+		m_scene->simulate(step, nullptr);
+	}
 }
 
 
@@ -307,8 +321,8 @@ void cViewer::OnRender(const float deltaSeconds)
 	GetMainCamera().Bind(m_renderer);
 	GetMainLight().Bind(m_renderer);
 
-	for (auto &actor : m_actors)
-		actor.node->Render(m_renderer);
+	for (auto &actor : m_syncs)
+		actor->node->Render(m_renderer);
 
 	{
 		using namespace physx;
@@ -319,45 +333,24 @@ void cViewer::OnRender(const float deltaSeconds)
 			m_scene->fetchResults(true);
 		}
 
-		// update active actor buffer
-		uint activeActorSize = 0;
+		uint size = 0;
 		{
-			PxSceneReadLock scopedLock(*m_scene);
-			const PxActiveTransform* activeTransforms = 
-				m_scene->getActiveTransforms(activeActorSize);
-			if (activeActorSize > m_activeBufferCapacity)
+			PxActor** activeActors = m_scene->getActiveActors(size);
+
+			for (uint i = 0; i < size; ++i)
 			{
-				_aligned_free(m_bufferedActiveTransforms);
+				sSyncInfo* sync = (sSyncInfo*)activeActors[i]->userData;
+				if (sync && sync->actor)
+				{
+					const PxTransform gtm = sync->actor->getGlobalPose();
 
-				m_activeBufferCapacity = activeActorSize;
-				m_bufferedActiveTransforms = (physx::PxActiveTransform*)_aligned_malloc(
-					sizeof(physx::PxActiveTransform) * activeActorSize, 16);
-			}
+					Transform tfm;
+					tfm.pos = *(Vector3*)&gtm.p;
+					tfm.rot = *(Quaternion*)&gtm.q;
 
-			if (activeActorSize > 0)
-			{
-				PxMemCopy(m_bufferedActiveTransforms, activeTransforms
-					, sizeof(PxActiveTransform) * activeActorSize);
-			}
-		}
-
-		// update render object
-		for (uint i = 0; i < activeActorSize; ++i)
-		{
-			PxActiveTransform *activeTfm = &m_bufferedActiveTransforms[i];
-
-			auto it = find_if(m_actors.begin(), m_actors.end(), [&](const auto &a) {
-				return (a.actor == activeTfm->actor);});
-			if (m_actors.end() == it)
-				continue;
-
-			sActor &actor = *it;
-			if (actor.name == "cube")
-			{
-				Transform tfm = actor.node->m_transform;
-				tfm.pos = *(Vector3*)&activeTfm->actor2World.p;
-				tfm.rot = *(Quaternion*)&activeTfm->actor2World.q;
-				actor.node->m_transform = tfm;
+					tfm.scale = sync->node->m_transform.scale;
+					sync->node->m_transform = tfm;
+				}
 			}
 		}
 	}
@@ -384,7 +377,7 @@ physx::PxRigidActor* cViewer::CreateGrid()
 
 physx::PxRigidDynamic* cViewer::CreateBox(const Vector3& pos
 	, const Vector3& dims, const Vector3* linVel
-	, float density)
+	, float density, sSyncInfo *sync)
 {
 	using namespace physx;
 	PxSceneWriteLock scopedLock(*m_scene);
@@ -398,6 +391,8 @@ physx::PxRigidDynamic* cViewer::CreateBox(const Vector3& pos
 	m_scene->addActor(*box);
 	if (linVel)
 		box->setLinearVelocity(*(PxVec3*)linVel);
+	box->userData = sync;
+
 	return box;
 }
 
@@ -421,8 +416,11 @@ void cViewer::OnEventProc(const sf::Event &evt)
 			tfm.scale = Vector3(1, 1, 1) * boxScale;
 			cube->SetCube(tfm);
 
-			m_actors.push_back({ CreateBox(Vector3(0,10,0)
-				, Vector3::Ones*boxScale, nullptr, 1.f), "cube", cube });
+			sSyncInfo* sync = new sSyncInfo;
+			sync->actor = CreateBox(Vector3(0, 10, 0), Vector3::Ones * boxScale, nullptr, 1.f, sync);
+			sync->name = "cube";
+			sync->node = cube;
+			m_syncs.push_back(sync);
 		}
 		break;
 		}

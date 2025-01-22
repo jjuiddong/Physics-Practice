@@ -4,23 +4,28 @@
 //		https://www.youtube.com/watch?v=RFv9rC375_Q
 //		https://www.youtube.com/watch?v=B7aDQyiGSPM
 //
+// 2025-01-19
+//	- migration physx3.4 -> 5.5
+//
 #include "stdafx.h"
 #include "3dview.h"
 
+#if defined(_WIN64)
 #if defined(_DEBUG)
-	#pragma comment(lib, "../../../PhysX-3.4/PhysX_3.4/Lib/vc15win32/PhysX3DEBUG_x86.lib")
-	#pragma comment(lib, "../../../PhysX-3.4/PhysX_3.4/lib/vc15win32/PhysX3CookingDEBUG_x86.lib")
-	#pragma comment(lib, "../../../PhysX-3.4/PhysX_3.4/lib/vc15win32/PhysX3CommonDEBUG_x86.lib")
-	#pragma comment(lib, "../../../PhysX-3.4/PhysX_3.4/lib/vc15win32/PhysX3ExtensionsDEBUG.lib")
-	#pragma comment(lib, "../../../PhysX-3.4/PxShared/lib/vc15win32/PxFoundationDEBUG_x86.lib")
-	#pragma comment(lib, "../../../PhysX-3.4/PxShared/lib/vc15win32/PxPvdSDKDEBUG_x86.lib")
+#pragma comment(lib, "../External/PhysX-5.5/bin/win.x86_64.vc142.md/debug/PhysX_64.lib")
+#pragma comment(lib, "../External/PhysX-5.5/bin/win.x86_64.vc142.md/debug/PhysXCommon_64.lib")
+#pragma comment(lib, "../External/PhysX-5.5/bin/win.x86_64.vc142.md/debug/PhysXCooking_64.lib")
+#pragma comment(lib, "../External/PhysX-5.5/bin/win.x86_64.vc142.md/debug/PhysXFoundation_64.lib")
+#pragma comment(lib, "../External/PhysX-5.5/bin/win.x86_64.vc142.md/debug/PhysXExtensions_static_64.lib")
+#pragma comment(lib, "../External/PhysX-5.5/bin/win.x86_64.vc142.md/debug/PhysXPvdSDK_static_64.lib")
 #else
-	#pragma comment(lib, "../../../PhysX-3.4/PhysX_3.4/Lib/vc15win32/PhysX3_x86.lib")
-	#pragma comment(lib, "../../../PhysX-3.4/PhysX_3.4/lib/vc15win32/PhysX3Cooking_x86.lib")
-	#pragma comment(lib, "../../../PhysX-3.4/PhysX_3.4/lib/vc15win32/PhysX3Common_x86.lib")
-	#pragma comment(lib, "../../../PhysX-3.4/PhysX_3.4/lib/vc15win32/PhysX3Extensions.lib")
-	#pragma comment(lib, "../../../PhysX-3.4/PxShared/lib/vc15win32/PxFoundation_x86.lib")
-	#pragma comment(lib, "../../../PhysX-3.4/PxShared/lib/vc15win32/PxPvdSDK_x86.lib")
+#pragma comment(lib, "../External/PhysX-5.5/bin/win.x86_64.vc142.md/release/PhysX_64.lib")
+#pragma comment(lib, "../External/PhysX-5.5/bin/win.x86_64.vc142.md/release/PhysXCommon_64.lib")
+#pragma comment(lib, "../External/PhysX-5.5/bin/win.x86_64.vc142.md/release/PhysXCooking_64.lib")
+#pragma comment(lib, "../External/PhysX-5.5/bin/win.x86_64.vc142.md/release/PhysXFoundation_64.lib")
+#pragma comment(lib, "../External/PhysX-5.5/bin/win.x86_64.vc142.md/release/PhysXExtensions_static_64.lib")
+#pragma comment(lib, "../External/PhysX-5.5/bin/win.x86_64.vc142.md/release/PhysXPvdSDK_static_64.lib")
+#endif
 #endif
 
 using namespace graphic;

@@ -28,13 +28,14 @@ cPhysicsEngine::cPhysicsEngine()
 
 cPhysicsEngine::~cPhysicsEngine()
 {
-	for (auto &p : m_actors)
+	for (auto &p : m_syncs)
 	{
-		m_scene->removeActor(*p.actor);
-		PX_SAFE_RELEASE(p.actor);
-		SAFE_DELETE(p.node);
+		m_scene->removeActor(*p->actor);
+		PX_SAFE_RELEASE(p->actor);
+		SAFE_DELETE(p->node);
+		delete p;
 	}
-	m_actors.clear();
+	m_syncs.clear();
 
 	for (auto &j : m_joints)
 		PX_SAFE_RELEASE(j);
@@ -44,19 +45,17 @@ cPhysicsEngine::~cPhysicsEngine()
 	PX_SAFE_RELEASE(m_scene);
 	PX_SAFE_RELEASE(m_cudaContextManager);
 	PX_SAFE_RELEASE(m_cpuDispatcher);
-	PX_SAFE_RELEASE(m_cooking);
 	PX_SAFE_RELEASE(m_material);
 	PX_SAFE_RELEASE(m_physics);
 	PX_SAFE_RELEASE(m_pvd);
 	PX_SAFE_RELEASE(m_transport);
 	PX_SAFE_RELEASE(m_foundation);
-	_aligned_free(m_bufferedActiveTransforms);
 }
 
 
 bool cPhysicsEngine::InitializePhysx(cRenderer &renderer)
 {
-	m_foundation = PxCreateFoundation(PX_FOUNDATION_VERSION
+	m_foundation = PxCreateFoundation(PX_PHYSICS_VERSION
 		, m_defaultAllocatorCallback, m_defaultErrorCallback);
 
 	// pvd connection
@@ -87,9 +86,6 @@ bool cPhysicsEngine::InitializePhysx(cRenderer &renderer)
 	params.meshWeldTolerance = 0.001f;
 	params.meshPreprocessParams = physx::PxMeshPreprocessingFlags(physx::PxMeshPreprocessingFlag::eWELD_VERTICES);
 	params.buildGPUData = true; //Enable GRB data being produced in cooking.
-	m_cooking = PxCreateCooking(PX_PHYSICS_VERSION, *m_foundation, params);
-	if (!m_cooking)
-		return false;
 
 	// scene initialize
 	physx::PxSceneDesc sceneDesc(m_physics->getTolerancesScale());
@@ -115,8 +111,6 @@ bool cPhysicsEngine::InitializePhysx(cRenderer &renderer)
 			PX_SAFE_RELEASE(m_cudaContextManager);
 		}
 	}
-	if (!sceneDesc.gpuDispatcher && m_cudaContextManager)
-		sceneDesc.gpuDispatcher = m_cudaContextManager->getGpuDispatcher();
 
 	//sceneDesc.frictionType = physx::PxFrictionType::eTWO_DIRECTIONAL;
 	//sceneDesc.frictionType = physx::PxFrictionType::eONE_DIRECTIONAL;
@@ -125,7 +119,8 @@ bool cPhysicsEngine::InitializePhysx(cRenderer &renderer)
 	//sceneDesc.flags |= physx::PxSceneFlag::eENABLE_AVERAGE_POINT;
 	sceneDesc.flags |= physx::PxSceneFlag::eENABLE_STABILIZATION;
 	//sceneDesc.flags |= physx::PxSceneFlag::eADAPTIVE_FORCE;
-	sceneDesc.flags |= physx::PxSceneFlag::eENABLE_ACTIVETRANSFORMS;
+	//sceneDesc.flags |= physx::PxSceneFlag::eENABLE_ACTIVETRANSFORMS; // Physx 3.4
+	sceneDesc.flags |= physx::PxSceneFlag::eENABLE_ACTIVE_ACTORS; // Physx 4.0
 	sceneDesc.sceneQueryUpdateMode = physx::PxSceneQueryUpdateMode::eBUILD_ENABLED_COMMIT_DISABLED;
 	//sceneDesc.flags |= physx::PxSceneFlag::eDISABLE_CONTACT_CACHE;
 	sceneDesc.broadPhaseType = physx::PxBroadPhaseType::eGPU;
@@ -158,9 +153,15 @@ bool cPhysicsEngine::InitializePhysx(cRenderer &renderer)
 
 bool cPhysicsEngine::PreUpdate(const float deltaSeconds)
 {
-	physx::PxSceneWriteLock writeLock(*m_scene);
-	m_scene->simulate(0.01f, nullptr);
-
+	const float step = 1.f / 60.f;
+	static float dt = 0.f;
+	dt += deltaSeconds;
+	if (dt > step)
+	{
+		dt -= step;
+		physx::PxSceneWriteLock writeLock(*m_scene);
+		m_scene->simulate(step, nullptr);
+	}
 	return true;
 }
 
@@ -175,47 +176,26 @@ bool cPhysicsEngine::PostUpdate(const float deltaSeconds)
 		m_scene->fetchResults(true);
 	}
 
-	// update active actor buffer
-	uint activeActorSize = 0;
+	uint size = 0;
 	{
-		PxSceneReadLock scopedLock(*m_scene);
-		const PxActiveTransform* activeTransforms =
-			m_scene->getActiveTransforms(activeActorSize);
-		if (activeActorSize > m_activeBufferCapacity)
-		{
-			_aligned_free(m_bufferedActiveTransforms);
+		PxActor** activeActors = m_scene->getActiveActors(size);
 
-			m_activeBufferCapacity = activeActorSize;
-			m_bufferedActiveTransforms = (physx::PxActiveTransform*)_aligned_malloc(
-				sizeof(physx::PxActiveTransform) * activeActorSize, 16);
-		}
-
-		if (activeActorSize > 0)
+		for (uint i = 0; i < size; ++i)
 		{
-			PxMemCopy(m_bufferedActiveTransforms, activeTransforms
-				, sizeof(PxActiveTransform) * activeActorSize);
+			sSyncInfo* sync = (sSyncInfo*)activeActors[i]->userData;
+			if (sync && sync->actor)
+			{
+				const PxTransform gtm = sync->actor->getGlobalPose();
+
+				Transform tfm;
+				tfm.pos = *(Vector3*)&gtm.p;
+				tfm.rot = *(Quaternion*)&gtm.q;
+
+				tfm.scale = sync->node->m_transform.scale;
+				sync->node->m_transform = tfm;
+			}
 		}
 	}
-
-	// update render object
-	for (uint i = 0; i < activeActorSize; ++i)
-	{
-		PxActiveTransform *activeTfm = &m_bufferedActiveTransforms[i];
-
-		auto it = find_if(m_actors.begin(), m_actors.end(), [&](const auto &a) {
-			return (a.actor == activeTfm->actor); });
-		if (m_actors.end() == it)
-			continue;
-
-		sActor &actor = *it;
-		{
-			Transform tfm = actor.node->m_transform;
-			tfm.pos = *(Vector3*)&activeTfm->actor2World.p;
-			tfm.rot = *(Quaternion*)&activeTfm->actor2World.q;
-			actor.node->m_transform = tfm;
-		}
-	}
-
 	return true;
 }
 
@@ -359,21 +339,22 @@ bool cPhysicsEngine::AddJoint(physx::PxJoint *joint)
 void cPhysicsEngine::ClearPhysicsObject()
 {
 	// no remove ground plane object
-	sActor ground;
-	for (auto &p : m_actors)
+	sSyncInfo *ground = nullptr;
+	for (auto &p : m_syncs)
 	{
-		if (p.name == "grid")
+		if (p->name == "grid")
 		{
 			ground = p;
 			continue;
 		}
-		m_scene->removeActor(*p.actor);
-		PX_SAFE_RELEASE(p.actor);
-		SAFE_DELETE(p.node);
+		m_scene->removeActor(*p->actor);
+		PX_SAFE_RELEASE(p->actor);
+		SAFE_DELETE(p->node);
+		delete p;
 	}
-	m_actors.clear();
-	if (ground.name == "grid")
-		m_actors.push_back(ground);
+	m_syncs.clear();
+	if (ground->name == "grid")
+		m_syncs.push_back(ground);
 
 	for (auto &j : m_joints)
 		PX_SAFE_RELEASE(j);

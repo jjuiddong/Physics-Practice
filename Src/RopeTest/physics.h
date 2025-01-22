@@ -1,6 +1,9 @@
 //
-// 202-01-16, jjuiddong
+// 2020-01-16, jjuiddong
 // PhysX library wrapping module
+//
+// 2025-01-19
+//	- migration physx3.4 -> 5.5
 //
 #pragma once
 
@@ -12,6 +15,13 @@ public:
 		, const char* file, int line) {
 		int a = 0;
 	}
+};
+
+struct sSyncInfo
+{
+	physx::PxRigidActor* actor;
+	string name;
+	graphic::cNode* node;
 };
 
 
@@ -58,21 +68,13 @@ public:
 	physx::PxMaterial *m_material;
 	physx::PxPvd *m_pvd;
 	physx::PxPvdTransport *m_transport;
-	physx::PxCooking *m_cooking;
 	physx::PxDefaultAllocator m_defaultAllocatorCallback;
 	physx::PxPvdInstrumentationFlags m_pvdFlags;
 	cDefaultErrorCallback m_defaultErrorCallback;
 	physx::PxDefaultCpuDispatcher *m_cpuDispatcher;
 	physx::PxCudaContextManager *m_cudaContextManager;
 	physx::PxScene *m_scene;
-	uint m_activeBufferCapacity;
-	physx::PxActiveTransform *m_bufferedActiveTransforms;
 
-	struct sActor {
-		physx::PxRigidActor *actor;
-		string name;
-		graphic::cNode *node;
-	};
-	vector<sActor> m_actors;
+	vector<sSyncInfo*> m_syncs;
 	vector<physx::PxJoint*> m_joints;
 };

@@ -28,7 +28,7 @@ bool c3DView::Init(cRenderer &renderer)
 	GetMainLight().Init(graphic::cLight::LIGHT_DIRECTIONAL);
 	GetMainLight().SetDirection(Vector3(-1, -2, 1.3f).Normal());
 
-	sf::Vector2u size((u_int)m_rect.Width() - 15, (u_int)m_rect.Height() - 50);
+	sf::Vector2u size((uint)m_rect.Width() - 15, (uint)m_rect.Height() - 50);
 	cViewport vp = renderer.m_viewPort;
 	vp.m_vp.Width = (float)size.x;
 	vp.m_vp.Height = (float)size.y;
@@ -37,7 +37,12 @@ bool c3DView::Init(cRenderer &renderer)
 
 	cGridLine *gridLine = new cGridLine();
 	gridLine->Create(renderer, 100, 100, 1.f, 1.f);
-	g_physics.m_actors.push_back({ g_physics.CreateGrid(), "grid", gridLine });
+	sSyncInfo* sync = new sSyncInfo;
+	sync->actor = g_physics.CreateGrid();
+	sync->name = "grid";
+	sync->node = gridLine;
+	sync->actor->userData = sync;
+	g_physics.m_syncs.push_back(sync);
 
 	return true;
 }
@@ -65,8 +70,8 @@ void c3DView::OnPreRender(const float deltaSeconds)
 		CommonStates states(renderer.GetDevice());
 		renderer.GetDevContext()->RSSetState(states.CullNone());
 
-		for (auto &actor : g_physics.m_actors)
-			actor.node->Render(renderer);
+		for (auto &p : g_physics.m_syncs)
+			p->node->Render(renderer);
 
 		g_physics.PostUpdate(deltaSeconds);
 
@@ -162,21 +167,42 @@ void c3DView::OnWheelMove(const float delta, const POINT mousePt)
 void c3DView::OnMouseMove(const POINT mousePt)
 {
 	const POINT delta = { mousePt.x - m_mousePos.x, mousePt.y - m_mousePos.y };
+	
+	const POINT prevMousePt = m_mousePos;
 	m_mousePos = mousePt;
 	if (ImGui::IsMouseHoveringRect(ImVec2(-1000, -1000), ImVec2(1000, 200), false))
 		return;
 
 	if (m_mouseDown[0])
 	{
+		const Plane ground(Vector3(0, 1, 0), 0);
+		const Ray ray0 = GetMainCamera().GetRay(prevMousePt.x, prevMousePt.y);
+		const Ray ray1 = GetMainCamera().GetRay(mousePt.x, mousePt.y);
+		const Vector3 p0 = ground.Pick(ray0.orig, ray0.dir);
+		const Vector3 p1 = ground.Pick(ray1.orig, ray1.dir);
+
 		Vector3 dir = GetMainCamera().GetDirection();
-		Vector3 right = GetMainCamera().GetRight();
 		dir.y = 0;
 		dir.Normalize();
+
+		Vector3 right = GetMainCamera().GetRight();
 		right.y = 0;
 		right.Normalize();
 
-		GetMainCamera().MoveRight(-delta.x * m_rotateLen * 0.001f);
-		GetMainCamera().MoveFrontHorizontal(delta.y * m_rotateLen * 0.001f);
+		const float df = dir.DotProduct((p1 - p0));
+		const float dr = right.DotProduct((p1 - p0));
+		GetMainCamera().MoveRight(-dr);
+		GetMainCamera().MoveFrontHorizontal(-df);
+
+		//Vector3 dir = GetMainCamera().GetDirection();
+		//Vector3 right = GetMainCamera().GetRight();
+		//dir.y = 0;
+		//dir.Normalize();
+		//right.y = 0;
+		//right.Normalize();
+
+		//GetMainCamera().MoveRight(-delta.x * m_rotateLen * 0.001f);
+		//GetMainCamera().MoveFrontHorizontal(delta.y * m_rotateLen * 0.001f);
 	}
 	else if (m_mouseDown[1])
 	{

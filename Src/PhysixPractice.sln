@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.28307.902
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.33529.622
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Simple", "Simple\Simple.vcxproj", "{99257F3D-D3AC-4328-94C9-B689783D96E7}"
 EndProject
@@ -21,11 +21,11 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RopeTest", "RopeTest\RopeTe
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PhysicsEngineTest", "PhysicsEngineTest\PhysicsEngineTest.vcxproj", "{3A0C344D-ACA3-4FE4-969A-9A648109D8EE}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Physics", "..\..\Common\Physics\Physics.vcxproj", "{08D5EDA9-22F1-4AF6-A9D6-FC3DE96982C7}"
-EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RopeX4Test", "RopeX4Test\RopeX4Test.vcxproj", "{129A43A0-B778-460B-9455-43D2C9412A17}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ArticulateTest", "ArticulateTest\ArticulateTest.vcxproj", "{BC0AA54E-F3EC-4AF3-B473-9DA5E3FAE9E6}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Physics_2019", "..\..\Common\Physics\Physics_2019.vcxproj", "{08D5EDA9-22F1-4AF6-A9D6-FC3DE96982C7}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -107,14 +107,6 @@ Global
 		{3A0C344D-ACA3-4FE4-969A-9A648109D8EE}.Release|x64.Build.0 = Release|x64
 		{3A0C344D-ACA3-4FE4-969A-9A648109D8EE}.Release|x86.ActiveCfg = Release|Win32
 		{3A0C344D-ACA3-4FE4-969A-9A648109D8EE}.Release|x86.Build.0 = Release|Win32
-		{08D5EDA9-22F1-4AF6-A9D6-FC3DE96982C7}.Debug|x64.ActiveCfg = Debug|x64
-		{08D5EDA9-22F1-4AF6-A9D6-FC3DE96982C7}.Debug|x64.Build.0 = Debug|x64
-		{08D5EDA9-22F1-4AF6-A9D6-FC3DE96982C7}.Debug|x86.ActiveCfg = Debug|Win32
-		{08D5EDA9-22F1-4AF6-A9D6-FC3DE96982C7}.Debug|x86.Build.0 = Debug|Win32
-		{08D5EDA9-22F1-4AF6-A9D6-FC3DE96982C7}.Release|x64.ActiveCfg = Release|x64
-		{08D5EDA9-22F1-4AF6-A9D6-FC3DE96982C7}.Release|x64.Build.0 = Release|x64
-		{08D5EDA9-22F1-4AF6-A9D6-FC3DE96982C7}.Release|x86.ActiveCfg = Release|Win32
-		{08D5EDA9-22F1-4AF6-A9D6-FC3DE96982C7}.Release|x86.Build.0 = Release|Win32
 		{129A43A0-B778-460B-9455-43D2C9412A17}.Debug|x64.ActiveCfg = Debug|x64
 		{129A43A0-B778-460B-9455-43D2C9412A17}.Debug|x64.Build.0 = Debug|x64
 		{129A43A0-B778-460B-9455-43D2C9412A17}.Debug|x86.ActiveCfg = Debug|Win32
@@ -131,6 +123,14 @@ Global
 		{BC0AA54E-F3EC-4AF3-B473-9DA5E3FAE9E6}.Release|x64.Build.0 = Release|x64
 		{BC0AA54E-F3EC-4AF3-B473-9DA5E3FAE9E6}.Release|x86.ActiveCfg = Release|Win32
 		{BC0AA54E-F3EC-4AF3-B473-9DA5E3FAE9E6}.Release|x86.Build.0 = Release|Win32
+		{08D5EDA9-22F1-4AF6-A9D6-FC3DE96982C7}.Debug|x64.ActiveCfg = Debug|x64
+		{08D5EDA9-22F1-4AF6-A9D6-FC3DE96982C7}.Debug|x64.Build.0 = Debug|x64
+		{08D5EDA9-22F1-4AF6-A9D6-FC3DE96982C7}.Debug|x86.ActiveCfg = Debug|Win32
+		{08D5EDA9-22F1-4AF6-A9D6-FC3DE96982C7}.Debug|x86.Build.0 = Debug|Win32
+		{08D5EDA9-22F1-4AF6-A9D6-FC3DE96982C7}.Release|x64.ActiveCfg = Release|x64
+		{08D5EDA9-22F1-4AF6-A9D6-FC3DE96982C7}.Release|x64.Build.0 = Release|x64
+		{08D5EDA9-22F1-4AF6-A9D6-FC3DE96982C7}.Release|x86.ActiveCfg = Release|Win32
+		{08D5EDA9-22F1-4AF6-A9D6-FC3DE96982C7}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

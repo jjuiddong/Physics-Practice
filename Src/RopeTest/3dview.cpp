@@ -28,22 +28,41 @@ bool c3DView::Init(cRenderer &renderer)
 	GetMainLight().Init(graphic::cLight::LIGHT_DIRECTIONAL);
 	GetMainLight().SetDirection(Vector3(-1, -2, 1.3f).Normal());
 
-	sf::Vector2u size((u_int)m_rect.Width() - 15, (u_int)m_rect.Height() - 50);
+	sf::Vector2u size((uint)m_rect.Width() - 15, (uint)m_rect.Height() - 50);
 	cViewport vp = renderer.m_viewPort;
 	vp.m_vp.Width = (float)size.x;
 	vp.m_vp.Height = (float)size.y;
 	m_renderTarget.Create(renderer, vp, DXGI_FORMAT_R8G8B8A8_UNORM, true, true
 		, DXGI_FORMAT_D24_UNORM_S8_UINT);
 
-	cGridLine *gridLine = new cGridLine();
+	//cGridLine *gridLine = new cGridLine();
+	//gridLine->Create(renderer, 100, 100, 1.f, 1.f);
+	//g_physics.m_actors.push_back({ g_physics.CreateGrid(), "grid", gridLine });
+
+	cGridLine* gridLine = new cGridLine();
 	gridLine->Create(renderer, 100, 100, 1.f, 1.f);
-	g_physics.m_actors.push_back({ g_physics.CreateGrid(), "grid", gridLine });
+
+	sSyncInfo* sync1 = new sSyncInfo;
+	sync1->actor = g_physics.CreateGrid();
+	sync1->name = "grid";
+	sync1->node = gridLine;
+	sync1->actor->userData = sync1;
+	g_physics.m_syncs.push_back(sync1);
 
 	const Vector3 rootPos(0, 30, 0);
-	cNode *root = g_physics.SpawnSphere(renderer, rootPos, 0.5f);
 	physx::PxRigidDynamic *rootActor = g_physics.CreateSphere(rootPos, 0.5f);
-	rootActor->setRigidBodyFlag(physx::PxRigidBodyFlag::eKINEMATIC, true);
-	g_physics.m_actors.push_back({ rootActor, "root", root});
+	{
+		cNode *root = g_physics.SpawnSphere(renderer, rootPos, 0.5f);
+		rootActor->setRigidBodyFlag(physx::PxRigidBodyFlag::eKINEMATIC, true);
+
+		sSyncInfo* sync = new sSyncInfo;
+		sync->actor = rootActor;
+		sync->name = "root";
+		sync->node = root;
+		sync->actor->userData = sync;
+		g_physics.m_syncs.push_back(sync);
+	}
+
 
 	// https://www.youtube.com/watch?v=B7aDQyiGSPM
 	// trick is based on the observation that using a larger mass for the sphere 
@@ -60,7 +79,13 @@ bool c3DView::Init(cRenderer &renderer)
 		const Vector3 pos(0.8f + i*0.8f, rootPos.y, 0);
 		cNode *node = g_physics.SpawnCapsule(renderer, pos, 0.1f, 0.3f);
 		physx::PxRigidDynamic *actor = g_physics.CreateCapsule(pos, 0.1f, 0.3f, nullptr, 100.f);
-		g_physics.m_actors.push_back({ actor, "capsule", node });
+
+		sSyncInfo* sync = new sSyncInfo;
+		sync->actor = actor;
+		sync->name = "capsule";
+		sync->node = node;
+		sync->actor->userData = sync;
+		g_physics.m_syncs.push_back(sync);
 
 		const Vector3 center = (prevPos + pos) * 0.5f;
 		const Vector3 p0 = center - prevPos;
@@ -81,7 +106,13 @@ bool c3DView::Init(cRenderer &renderer)
 		const Vector3 pos(0.8f + 1 + 25 * 0.8f, rootPos.y, 0);
 		cNode *box = g_physics.SpawnBox(renderer, pos, Vector3::Ones*1.f);
 		physx::PxRigidDynamic *actor = g_physics.CreateBox(pos, Vector3::Ones*1.f);
-		g_physics.m_actors.push_back({ actor, "box", box });
+		
+		sSyncInfo* sync = new sSyncInfo;
+		sync->actor = actor;
+		sync->name = "box";
+		sync->node = box;
+		sync->actor->userData = sync;
+		g_physics.m_syncs.push_back(sync);
 
 		const Vector3 center = (prevPos + pos) * 0.5f;
 		const Vector3 p0 = center - prevPos;
@@ -100,7 +131,13 @@ bool c3DView::Init(cRenderer &renderer)
 		cNode *box = g_physics.SpawnBox(renderer, pos, Vector3::Ones*1.f);
 		physx::PxRigidDynamic *actor = g_physics.CreateBox(pos, Vector3::Ones*1.f);
 		actor->setRigidBodyFlag(physx::PxRigidBodyFlag::eKINEMATIC, true);
-		g_physics.m_actors.push_back({ actor, "box", box });
+		
+		sSyncInfo* sync = new sSyncInfo;
+		sync->actor = actor;
+		sync->name = "box";
+		sync->node = box;
+		sync->actor->userData = sync;
+		g_physics.m_syncs.push_back(sync);		
 	}
 
 	return true;
@@ -129,8 +166,8 @@ void c3DView::OnPreRender(const float deltaSeconds)
 		CommonStates states(renderer.GetDevice());
 		renderer.GetDevContext()->RSSetState(states.CullNone());
 
-		for (auto &actor : g_physics.m_actors)
-			actor.node->Render(renderer);
+		for (auto &p : g_physics.m_syncs)
+			p->node->Render(renderer);
 
 		g_physics.PostUpdate(deltaSeconds);
 
@@ -226,21 +263,42 @@ void c3DView::OnWheelMove(const float delta, const POINT mousePt)
 void c3DView::OnMouseMove(const POINT mousePt)
 {
 	const POINT delta = { mousePt.x - m_mousePos.x, mousePt.y - m_mousePos.y };
+
+	const POINT prevMousePt = m_mousePos;
 	m_mousePos = mousePt;
 	if (ImGui::IsMouseHoveringRect(ImVec2(-1000, -1000), ImVec2(1000, 200), false))
 		return;
 
 	if (m_mouseDown[0])
 	{
+		const Plane ground(Vector3(0, 1, 0), 0);
+		const Ray ray0 = GetMainCamera().GetRay(prevMousePt.x, prevMousePt.y);
+		const Ray ray1 = GetMainCamera().GetRay(mousePt.x, mousePt.y);
+		const Vector3 p0 = ground.Pick(ray0.orig, ray0.dir);
+		const Vector3 p1 = ground.Pick(ray1.orig, ray1.dir);
+
 		Vector3 dir = GetMainCamera().GetDirection();
-		Vector3 right = GetMainCamera().GetRight();
 		dir.y = 0;
 		dir.Normalize();
+
+		Vector3 right = GetMainCamera().GetRight();
 		right.y = 0;
 		right.Normalize();
 
-		GetMainCamera().MoveRight(-delta.x * m_rotateLen * 0.001f);
-		GetMainCamera().MoveFrontHorizontal(delta.y * m_rotateLen * 0.001f);
+		const float df = dir.DotProduct((p1 - p0));
+		const float dr = right.DotProduct((p1 - p0));
+		GetMainCamera().MoveRight(-dr);
+		GetMainCamera().MoveFrontHorizontal(-df);
+
+		//Vector3 dir = GetMainCamera().GetDirection();
+		//Vector3 right = GetMainCamera().GetRight();
+		//dir.y = 0;
+		//dir.Normalize();
+		//right.y = 0;
+		//right.Normalize();
+
+		//GetMainCamera().MoveRight(-delta.x * m_rotateLen * 0.001f);
+		//GetMainCamera().MoveFrontHorizontal(delta.y * m_rotateLen * 0.001f);
 	}
 	else if (m_mouseDown[1])
 	{
