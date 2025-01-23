@@ -1,9 +1,6 @@
 //
-// 2020-01-22, jjuiddong
+// 2025-01-22, jjuiddong
 // 3D View
-// 
-// 2025-01-22
-//	- articulation sample implement
 //
 #pragma once
 
@@ -24,20 +21,8 @@ public:
 
 
 protected:
-	void InitScissorLift1();
-	void InitScissorLift2();
-	void InitScissorLift3();
-
-	physx::PxArticulationLink* CreateLink(physx::PxArticulationLink* parent
-		, const Transform &tfm, const float mass = 1.f);
-
-	physx::PxArticulationJointReducedCoordinate* CreateJoint(
-		physx::PxArticulationLink* link
-		, const Transform& worldTfm0, const Vector3& pivot0
-		, const Transform& worldTfm1, const Vector3& pivot1
-		, const physx::PxArticulationJointType::Enum jointType
-	);
-
+	void InitRobot1();
+	void InitRobot2();
 
 	void UpdateLookAt();
 	void OnWheelMove(const float delta, const POINT mousePt);
@@ -52,11 +37,15 @@ public:
 	phys::cPhysicsSync *m_physSync;
 	graphic::cGridLine m_grid;
 
-	int m_boxId;
-	physx::PxArticulationReducedCoordinate* m_articulation;
-	physx::PxArticulationJointReducedCoordinate* m_driveJoint;
 	phys::cArticulation m_art;
+	physx::PxArticulationJointReducedCoordinate* m_driveJoint;
+	physx::PxArticulationJointReducedCoordinate* m_motorJoint1;
+	physx::PxArticulationJointReducedCoordinate* m_motorJoint2;
+	physx::PxArticulationJointReducedCoordinate* m_motorJoint3;
+	physx::PxArticulationJointReducedCoordinate* m_motorJoint4;
 	graphic::cCube m_box;
+	graphic::cCylinder m_cylinder;
+	graphic::cSphere m_sphere;
 
 	bool m_showGrid;
 

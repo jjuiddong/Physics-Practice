@@ -870,7 +870,7 @@ void c3DView::InitScissorLift3()
 	{
 		if (kv.first != top)
 		{
-			PxArticulationLink* link = kv.second;
+			PxArticulationLink* link = kv.second.link;
 
 			for (PxU32 b = 0; b < link->getNbShapes(); ++b)
 			{
