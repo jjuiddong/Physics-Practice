@@ -136,19 +136,19 @@ void c3DView::InitRobot1()
 
 	joint = m_art.AddJoint(wheel1, phys::eJointType::Revolute
 		, Vector3(frame_cx/2, frame_y, frame_cz/2), wheelTfm1.pos);
-	m_art.SetJointVelocityDrive(joint, 0.f, 100.f, 100.f, 10.f);
+	m_art.SetJointDriveVelocity(joint, 0.f, 100.f, 100.f, 10.f);
 
 	joint = m_art.AddJoint(wheel2, phys::eJointType::Revolute
 		, Vector3(-frame_cx / 2, frame_y, frame_cz / 2), wheelTfm2.pos);
-	m_art.SetJointVelocityDrive(joint, 0.f, 100.f, 100.f, -10.f);
+	m_art.SetJointDriveVelocity(joint, 0.f, 100.f, 100.f, -10.f);
 
 	joint = m_art.AddJoint(wheel3, phys::eJointType::Revolute
 		, Vector3(frame_cx / 2, frame_y, -frame_cz / 2), wheelTfm3.pos);
-	m_art.SetJointVelocityDrive(joint, 0.f, 100.f, 100.f, 10.f);
+	m_art.SetJointDriveVelocity(joint, 0.f, 100.f, 100.f, 10.f);
 
 	joint = m_art.AddJoint(wheel4, phys::eJointType::Revolute
 		, Vector3(-frame_cx / 2, frame_y, -frame_cz / 2), wheelTfm4.pos);
-	m_art.SetJointVelocityDrive(joint, 0.f, 100.f, 100.f, -10.f);
+	m_art.SetJointDriveVelocity(joint, 0.f, 100.f, 100.f, -10.f);
 
 	m_art.AddScene(m_physics);
 }
@@ -207,22 +207,22 @@ void c3DView::InitRobot2()
 
 	joint = m_art.AddJoint(motor1, phys::eJointType::Revolute
 		, Vector3(frame_cx / 2, wheel_y, frame_cz / 2), motorTfm1.pos, Vector3(0,1,0));
-	m_art.SetJointVelocityDrive(joint, 0.f, 100.f, 100.f, 0.f);
+	m_art.SetJointDriveVelocity(joint, 0.f, 100.f, 100.f, 0.f);
 	m_motorJoint1 = joint;
 
 	joint = m_art.AddJoint(motor2, phys::eJointType::Revolute
 		, Vector3(-frame_cx / 2, wheel_y, frame_cz / 2), motorTfm2.pos, Vector3(0, 1, 0));
-	m_art.SetJointVelocityDrive(joint, 0.f, 100.f, 100.f, 0.f);
+	m_art.SetJointDriveVelocity(joint, 0.f, 100.f, 100.f, 0.f);
 	m_motorJoint2 = joint;
 
 	joint = m_art.AddJoint(motor3, phys::eJointType::Revolute
 		, Vector3(frame_cx / 2, wheel_y, -frame_cz / 2), motorTfm3.pos, Vector3(0, 1, 0));
-	m_art.SetJointVelocityDrive(joint, 0.f, 100.f, 100.f, 0.f);
+	m_art.SetJointDriveVelocity(joint, 0.f, 100.f, 100.f, 0.f);
 	m_motorJoint3 = joint;
 
 	joint = m_art.AddJoint(motor4, phys::eJointType::Revolute
 		, Vector3(-frame_cx / 2, wheel_y, -frame_cz / 2), motorTfm4.pos, Vector3(0, 1, 0));
-	m_art.SetJointVelocityDrive(joint, 0.f, 100.f, 100.f, 0.f);
+	m_art.SetJointDriveVelocity(joint, 0.f, 100.f, 100.f, 0.f);
 	m_motorJoint4 = joint;
 
 
@@ -240,16 +240,16 @@ void c3DView::InitRobot2()
 	const int wheel4 = m_art.AddCylinderLink(m_physics, motor4, wheelTfm4, wheel_r, wheel_d, wheel_mass);
 
 	joint = m_art.AddJoint(wheel1, phys::eJointType::Revolute, motorTfm1.pos, wheelTfm1.pos);
-	m_art.SetJointVelocityDrive(joint, 0.f, 100.f, 100.f, velocity);
+	m_art.SetJointDriveVelocity(joint, 0.f, 100.f, 100.f, velocity);
 
 	joint = m_art.AddJoint(wheel2, phys::eJointType::Revolute, motorTfm2.pos, wheelTfm2.pos);
-	m_art.SetJointVelocityDrive(joint, 0.f, 100.f, 100.f, velocity);
+	m_art.SetJointDriveVelocity(joint, 0.f, 100.f, 100.f, velocity);
 
 	joint = m_art.AddJoint(wheel3, phys::eJointType::Revolute, motorTfm3.pos, wheelTfm3.pos);
-	m_art.SetJointVelocityDrive(joint, 0.f, 100.f, 100.f, velocity);
+	m_art.SetJointDriveVelocity(joint, 0.f, 100.f, 100.f, velocity);
 
 	joint = m_art.AddJoint(wheel4, phys::eJointType::Revolute, motorTfm4.pos, wheelTfm4.pos);
-	m_art.SetJointVelocityDrive(joint, 0.f, 100.f, 100.f, velocity);
+	m_art.SetJointDriveVelocity(joint, 0.f, 100.f, 100.f, velocity);
 
 
 	m_art.AddScene(m_physics);
