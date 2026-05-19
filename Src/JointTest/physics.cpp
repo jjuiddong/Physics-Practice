@@ -102,15 +102,15 @@ bool cPhysicsEngine::InitializePhysx(cRenderer &renderer)
 	if (!sceneDesc.filterShader)
 		sceneDesc.filterShader = physx::PxDefaultSimulationFilterShader;
 
-	physx::PxCudaContextManagerDesc cudaContextManagerDesc;
-	m_cudaContextManager = PxCreateCudaContextManager(*m_foundation, cudaContextManagerDesc);
-	if (m_cudaContextManager)
-	{
-		if (!m_cudaContextManager->contextIsValid())
-		{
-			PX_SAFE_RELEASE(m_cudaContextManager);
-		}
-	}
+	//physx::PxCudaContextManagerDesc cudaContextManagerDesc;
+	//m_cudaContextManager = PxCreateCudaContextManager(*m_foundation, cudaContextManagerDesc);
+	//if (m_cudaContextManager)
+	//{
+	//	if (!m_cudaContextManager->contextIsValid())
+	//	{
+	//		PX_SAFE_RELEASE(m_cudaContextManager);
+	//	}
+	//}
 
 	//sceneDesc.frictionType = physx::PxFrictionType::eTWO_DIRECTIONAL;
 	//sceneDesc.frictionType = physx::PxFrictionType::eONE_DIRECTIONAL;

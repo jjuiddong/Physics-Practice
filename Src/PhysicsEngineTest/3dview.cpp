@@ -42,12 +42,12 @@ bool c3DView::Init(cRenderer &renderer)
 
 	m_physSync = new phys::cPhysicsSync();
 	m_physSync->Create(&m_physics);
-	m_physSync->SpawnPlane(renderer, Vector3(0, 1, 0));
+	m_physSync->SpawnPlane(&renderer, Vector3(0, 1, 0));
 	
 	Transform tfm;
 	tfm.pos = Vector3(0, 10, 0);
 	tfm.scale = Vector3::Ones * 0.5f;
-	m_physSync->SpawnBox(renderer, tfm);
+	m_physSync->SpawnBox(&renderer, tfm);
 
 	return true;
 }
@@ -304,13 +304,13 @@ void c3DView::OnEventProc(const sf::Event &evt)
 			switch (idx)
 			{
 			case 0:
-				m_physSync->SpawnBox(GetRenderer(), tfm);
+				m_physSync->SpawnBox(&GetRenderer(), tfm);
 				break;
 			case 1:
-				m_physSync->SpawnSphere(GetRenderer(), tfm, tfm.scale.Length());
+				m_physSync->SpawnSphere(&GetRenderer(), tfm, tfm.scale.Length());
 				break;
 			case 2:
-				m_physSync->SpawnCapsule(GetRenderer(), tfm, tfm.scale.Length()
+				m_physSync->SpawnCapsule(&GetRenderer(), tfm, tfm.scale.Length()
 					, tfm.scale.Length()*2.f);
 				break;
 			}

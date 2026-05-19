@@ -28,6 +28,7 @@ c3DView::~c3DView()
 	config.Write("config.txt");
 	//~
 
+	m_art.Clear(&m_physics);
 	m_physics.Clear();
 }
 
@@ -67,7 +68,7 @@ bool c3DView::Init(cRenderer& renderer)
 
 	m_physSync = new phys::cPhysicsSync();
 	m_physSync->Create(&m_physics);
-	m_physSync->SpawnPlane(renderer, Vector3(0, 1, 0));
+	m_physSync->SpawnPlane(&renderer, Vector3(0, 1, 0));
 
 	//InitRobot1();
 	InitRobot2();
@@ -89,7 +90,7 @@ bool SetJointDriveParam(physx::PxArticulationJointReducedCoordinate* joint, cons
 	posDrive.stiffness = 100.f;
 	posDrive.damping = 0.f;
 	posDrive.maxForce = 100.f;
-	posDrive.driveType = PxArticulationDriveType::eVELOCITY;
+	posDrive.driveType = PxArticulationDriveType::eACCELERATION;
 
 	joint->setDriveParams(PxArticulationAxis::eTWIST, posDrive);
 	joint->setMotion(PxArticulationAxis::eTWIST, PxArticulationMotion::eFREE);
@@ -207,22 +208,22 @@ void c3DView::InitRobot2()
 
 	joint = m_art.AddJoint(motor1, phys::eJointType::Revolute
 		, Vector3(frame_cx / 2, wheel_y, frame_cz / 2), motorTfm1.pos, Vector3(0,1,0));
-	m_art.SetJointDriveVelocity(joint, 0.f, 100.f, 100.f, 0.f);
+	m_art.SetJointDriveTarget(joint, 100.f, 0.f, 100.f, 0.f);
 	m_motorJoint1 = joint;
 
 	joint = m_art.AddJoint(motor2, phys::eJointType::Revolute
 		, Vector3(-frame_cx / 2, wheel_y, frame_cz / 2), motorTfm2.pos, Vector3(0, 1, 0));
-	m_art.SetJointDriveVelocity(joint, 0.f, 100.f, 100.f, 0.f);
+	m_art.SetJointDriveTarget(joint, 100.f, 0.f, 100.f, 0.f);
 	m_motorJoint2 = joint;
 
 	joint = m_art.AddJoint(motor3, phys::eJointType::Revolute
 		, Vector3(frame_cx / 2, wheel_y, -frame_cz / 2), motorTfm3.pos, Vector3(0, 1, 0));
-	m_art.SetJointDriveVelocity(joint, 0.f, 100.f, 100.f, 0.f);
+	m_art.SetJointDriveTarget(joint, 100.f, 0.f, 100.f, 0.f);
 	m_motorJoint3 = joint;
 
 	joint = m_art.AddJoint(motor4, phys::eJointType::Revolute
 		, Vector3(-frame_cx / 2, wheel_y, -frame_cz / 2), motorTfm4.pos, Vector3(0, 1, 0));
-	m_art.SetJointDriveVelocity(joint, 0.f, 100.f, 100.f, 0.f);
+	m_art.SetJointDriveTarget(joint, 100.f, 0.f, 100.f, 0.f);
 	m_motorJoint4 = joint;
 
 
@@ -256,7 +257,6 @@ void c3DView::InitRobot2()
 }
 
 
-
 void c3DView::OnUpdate(const float deltaSeconds)
 {
 	if (m_isSimulation)
@@ -269,12 +269,12 @@ void c3DView::OnUpdate(const float deltaSeconds)
 		if (incT > 1.f)
 		{
 			incT = 0.f;
-			const float velocity = 0.5f;
+			const float target = MATH_PI / 8.f;
 
-			m_motorJoint1->setDriveVelocity(PxArticulationAxis::eTWIST, toggle? velocity : -velocity);
-			m_motorJoint2->setDriveVelocity(PxArticulationAxis::eTWIST, toggle ? velocity : -velocity);
-			m_motorJoint3->setDriveVelocity(PxArticulationAxis::eTWIST, toggle ? velocity : -velocity);
-			m_motorJoint4->setDriveVelocity(PxArticulationAxis::eTWIST, toggle ? velocity : -velocity);
+			m_motorJoint1->setDriveTarget(PxArticulationAxis::eTWIST, toggle ? target : -target);
+			m_motorJoint2->setDriveTarget(PxArticulationAxis::eTWIST, toggle ? target : -target);
+			m_motorJoint3->setDriveTarget(PxArticulationAxis::eTWIST, toggle ? target : -target);
+			m_motorJoint4->setDriveTarget(PxArticulationAxis::eTWIST, toggle ? target : -target);
 
 			toggle = !toggle;
 		}
@@ -308,6 +308,8 @@ void c3DView::OnPreRender(const float deltaSeconds)
 		}
 
 		using namespace physx;
+
+		m_art.Render(renderer);
 
 		m_box.SetColor(cColor::WHITE);
 

@@ -211,16 +211,16 @@ bool cViewer::InitializePhysx()
 		, m_defaultAllocatorCallback, m_defaultErrorCallback);
 
 	// pvd connection
-	sPvdParameters pvdParams;
-	m_transport = physx::PxDefaultPvdSocketTransportCreate(pvdParams.ip.c_str(), pvdParams.port
-		, pvdParams.timeout);
-	if (m_transport == NULL)
-		return false;
-	m_pvdFlags = physx::PxPvdInstrumentationFlag::eALL;
-	if (!pvdParams.useFullPvdConnection)
-		m_pvdFlags = physx::PxPvdInstrumentationFlag::ePROFILE;
-	m_pvd = physx::PxCreatePvd(*m_foundation);
-	m_pvd->connect(*m_transport, m_pvdFlags);
+	//sPvdParameters pvdParams;
+	//m_transport = physx::PxDefaultPvdSocketTransportCreate(pvdParams.ip.c_str(), pvdParams.port
+	//	, pvdParams.timeout);
+	//if (m_transport == NULL)
+	//	return false;
+	//m_pvdFlags = physx::PxPvdInstrumentationFlag::eALL;
+	//if (!pvdParams.useFullPvdConnection)
+	//	m_pvdFlags = physx::PxPvdInstrumentationFlag::ePROFILE;
+	//m_pvd = physx::PxCreatePvd(*m_foundation);
+	//m_pvd->connect(*m_transport, m_pvdFlags);
 	//~pvd
 
 	bool recordMemoryAllocations = true;
@@ -254,15 +254,15 @@ bool cViewer::InitializePhysx()
 	if (!sceneDesc.filterShader)
 		sceneDesc.filterShader = physx::PxDefaultSimulationFilterShader;
 
-	physx::PxCudaContextManagerDesc cudaContextManagerDesc;
-	m_cudaContextManager = PxCreateCudaContextManager(*m_foundation, cudaContextManagerDesc);
-	if (m_cudaContextManager)
-	{
-		if (!m_cudaContextManager->contextIsValid())
-		{
-			PX_SAFE_RELEASE(m_cudaContextManager);
-		}
-	}
+	//physx::PxCudaContextManagerDesc cudaContextManagerDesc;
+	//m_cudaContextManager = PxCreateCudaContextManager(*m_foundation, cudaContextManagerDesc);
+	//if (m_cudaContextManager)
+	//{
+	//	if (!m_cudaContextManager->contextIsValid())
+	//	{
+	//		PX_SAFE_RELEASE(m_cudaContextManager);
+	//	}
+	//}
 	//if (!sceneDesc.gpuDispatcher && m_cudaContextManager)
 	//	sceneDesc.gpuDispatcher = m_cudaContextManager->getGpuDispatcher();
 

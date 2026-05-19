@@ -185,7 +185,7 @@
     <ProjectReference Include="..\..\..\Common\Physics\Physics_2019.vcxproj">
       <Project>{08d5eda9-22f1-4af6-a9d6-fc3de96982c7}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\DirectXTK\DirectXTK_Desktop_2017.vcxproj">
+    <ProjectReference Include="..\..\..\DirectXTK\DirectXTK_Desktop_2019_Win10.vcxproj">
       <Project>{e0b52ae7-e160-4d32-bf3f-910b785e5a8e}</Project>
     </ProjectReference>
   </ItemGroup>

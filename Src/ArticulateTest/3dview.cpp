@@ -67,7 +67,7 @@ bool c3DView::Init(cRenderer& renderer)
 
 	m_physSync = new phys::cPhysicsSync();
 	m_physSync->Create(&m_physics);
-	m_physSync->SpawnPlane(renderer, Vector3(0, 1, 0));
+	m_physSync->SpawnPlane(&renderer, Vector3(0, 1, 0));
 
 	//InitScissorLift1();
 	//InitScissorLift2();
@@ -661,14 +661,14 @@ void c3DView::InitScissorLift2()
 	const float density = 0.5f;
 	const float contactOffset = 0.2f;
 
-	const int id0 = m_physSync->SpawnBox(renderer, Transform(Vector3(-0.25f, 5.f, 0.5f), halfExt), density);
-	const int id1 = m_physSync->SpawnBox(renderer, Transform(Vector3(0.25f, 5.f, 0.5f), halfExt), density);
-	const int id2 = m_physSync->SpawnBox(renderer, Transform(Vector3(-0.25f, 4.5f, 0.5f), halfExt), density);
-	const int id3 = m_physSync->SpawnBox(renderer, Transform(Vector3(0.25f, 4.5f, 0.5f), halfExt), density);
-	const int id4 = m_physSync->SpawnBox(renderer, Transform(Vector3(-0.25f, 5.f, 0.f), halfExt), density);
-	const int id5 = m_physSync->SpawnBox(renderer, Transform(Vector3(0.25f, 5.f, 0.f), halfExt), density);
-	const int id6 = m_physSync->SpawnBox(renderer, Transform(Vector3(-0.25f, 4.5f, 0.f), halfExt), density);
-	const int id7 = m_physSync->SpawnBox(renderer, Transform(Vector3(0.25f, 4.5f, 0.f), halfExt), density);
+	const int id0 = m_physSync->SpawnBox(&renderer, Transform(Vector3(-0.25f, 5.f, 0.5f), halfExt), density);
+	const int id1 = m_physSync->SpawnBox(&renderer, Transform(Vector3(0.25f, 5.f, 0.5f), halfExt), density);
+	const int id2 = m_physSync->SpawnBox(&renderer, Transform(Vector3(-0.25f, 4.5f, 0.5f), halfExt), density);
+	const int id3 = m_physSync->SpawnBox(&renderer, Transform(Vector3(0.25f, 4.5f, 0.5f), halfExt), density);
+	const int id4 = m_physSync->SpawnBox(&renderer, Transform(Vector3(-0.25f, 5.f, 0.f), halfExt), density);
+	const int id5 = m_physSync->SpawnBox(&renderer, Transform(Vector3(0.25f, 5.f, 0.f), halfExt), density);
+	const int id6 = m_physSync->SpawnBox(&renderer, Transform(Vector3(-0.25f, 4.5f, 0.f), halfExt), density);
+	const int id7 = m_physSync->SpawnBox(&renderer, Transform(Vector3(0.25f, 4.5f, 0.f), halfExt), density);
 
 	if (phys::sSyncInfo *p = m_physSync->FindSyncInfo(id0))
 		p->actor->SetContactOffset(contactOffset);
@@ -889,14 +889,14 @@ void c3DView::InitScissorLift3()
 	const float density = 0.5f;
 	const float contactOffset = 0.2f;
 
-	const int id0 = m_physSync->SpawnBox(renderer, Transform(Vector3(-0.25f, 5.f, 0.5f), halfExt), density);
-	const int id1 = m_physSync->SpawnBox(renderer, Transform(Vector3(0.25f, 5.f, 0.5f), halfExt), density);
-	const int id2 = m_physSync->SpawnBox(renderer, Transform(Vector3(-0.25f, 4.5f, 0.5f), halfExt), density);
-	const int id3 = m_physSync->SpawnBox(renderer, Transform(Vector3(0.25f, 4.5f, 0.5f), halfExt), density);
-	const int id4 = m_physSync->SpawnBox(renderer, Transform(Vector3(-0.25f, 5.f, 0.f), halfExt), density);
-	const int id5 = m_physSync->SpawnBox(renderer, Transform(Vector3(0.25f, 5.f, 0.f), halfExt), density);
-	const int id6 = m_physSync->SpawnBox(renderer, Transform(Vector3(-0.25f, 4.5f, 0.f), halfExt), density);
-	const int id7 = m_physSync->SpawnBox(renderer, Transform(Vector3(0.25f, 4.5f, 0.f), halfExt), density);
+	const int id0 = m_physSync->SpawnBox(&renderer, Transform(Vector3(-0.25f, 5.f, 0.5f), halfExt), density);
+	const int id1 = m_physSync->SpawnBox(&renderer, Transform(Vector3(0.25f, 5.f, 0.5f), halfExt), density);
+	const int id2 = m_physSync->SpawnBox(&renderer, Transform(Vector3(-0.25f, 4.5f, 0.5f), halfExt), density);
+	const int id3 = m_physSync->SpawnBox(&renderer, Transform(Vector3(0.25f, 4.5f, 0.5f), halfExt), density);
+	const int id4 = m_physSync->SpawnBox(&renderer, Transform(Vector3(-0.25f, 5.f, 0.f), halfExt), density);
+	const int id5 = m_physSync->SpawnBox(&renderer, Transform(Vector3(0.25f, 5.f, 0.f), halfExt), density);
+	const int id6 = m_physSync->SpawnBox(&renderer, Transform(Vector3(-0.25f, 4.5f, 0.f), halfExt), density);
+	const int id7 = m_physSync->SpawnBox(&renderer, Transform(Vector3(0.25f, 4.5f, 0.f), halfExt), density);
 
 	if (phys::sSyncInfo* p = m_physSync->FindSyncInfo(id0))
 		p->actor->SetContactOffset(contactOffset);

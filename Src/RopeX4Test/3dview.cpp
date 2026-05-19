@@ -46,7 +46,7 @@ bool c3DView::Init(cRenderer &renderer)
 
 	m_physSync = new phys::cPhysicsSync();
 	m_physSync->Create(&m_physics);
-	m_physSync->SpawnPlane(renderer, Vector3(0, 1, 0));
+	m_physSync->SpawnPlane(&renderer, Vector3(0, 1, 0));
 
 	using namespace physx;
 	const float rootY = 30.f;
@@ -60,7 +60,7 @@ bool c3DView::Init(cRenderer &renderer)
 	
 	for (int i = 0; i < 4; ++i)
 	{
-		const int rootId0 = m_physSync->SpawnSphere(renderer, Transform(rootPoss[i]), 0.5f);
+		const int rootId0 = m_physSync->SpawnSphere(&renderer, Transform(rootPoss[i]), 0.5f);
 		phys::sSyncInfo *rootActor0 = m_physSync->FindSyncInfo(rootId0);
 		rootActor0->actor->SetKinematic(true);
 		rootIds[i] = rootId0;
@@ -89,7 +89,7 @@ bool c3DView::Init(cRenderer &renderer)
 			Transform tfm;
 			tfm.pos = pos;
 			tfm.rot.SetRotationZ(MATH_PI / 2.f);
-			const int actorId = m_physSync->SpawnCapsule(renderer, tfm, 0.1f, 0.3f, 100.f);
+			const int actorId = m_physSync->SpawnCapsule(&renderer, tfm, 0.1f, 0.3f, 100.f);
 			phys::sSyncInfo *capsule = m_physSync->FindSyncInfo(actorId);
 			capsule->actor->SetAngularDamping(0.f);
 			capsule->actor->SetLinearDamping(0.f);
@@ -112,7 +112,7 @@ bool c3DView::Init(cRenderer &renderer)
 		Transform tfm;
 		tfm.pos = Vector3(2.5f, rootY - 0.8f - 25 * 0.8f - 1.5f, 2.5f);
 		tfm.scale = Vector3::Ones * 2.7f;
-		const int boxId = m_physSync->SpawnBox(renderer, tfm, 1.f);
+		const int boxId = m_physSync->SpawnBox(&renderer, tfm, 1.f);
 		phys::sSyncInfo *box = m_physSync->FindSyncInfo(boxId);
 		box->actor->SetAngularDamping(0);
 		box->actor->SetLinearDamping(0);
