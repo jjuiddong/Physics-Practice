@@ -1,0 +1,44 @@
+
+link
+    name 'base'
+
+link
+    name 'frame'
+	visual
+    	geometry box
+        dimension 0.3 0.1 0.5
+link
+    name 'l_wheel'
+	visual
+    	geometry cylinder
+        origin_rpy 0 100 0
+        radius 0.2
+		height 0.1
+link
+    name 'r_wheel'
+	visual
+    	geometry cylinder
+        origin_rpy 0 80 0
+        radius 0.2
+		height 0.1
+
+joint
+	name 'joint1'
+	type fixed
+	parent 'base'
+	child 'frame'
+	origin_xyz 0 0.3 0
+joint
+	name 'rw_joint'
+	type revolute
+	parent 'frame'
+	child 'r_wheel'
+	origin_xyz -0.25 0 0
+	axis_xyz 1 0 0
+joint
+	name 'lw_joint'
+	type revolute
+	parent 'frame'
+	child 'l_wheel'
+	origin_xyz 0.25 0 0
+	axis_xyz 1 0 0

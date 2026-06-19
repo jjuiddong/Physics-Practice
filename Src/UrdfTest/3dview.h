@@ -22,8 +22,13 @@ public:
 
 protected:
 	void InitRobot1();
-	void InitRobot2();
-	void InitRobot3();
+	void RenderUrdf(graphic::cRenderer& renderer, const float deltaSeconds);
+	bool RenderUrdfNode(graphic::cRenderer& renderer
+		, rik::cNode2* node, const XMMATRIX& parentTm, const int flags = 0);
+	bool RenderUrdfJoint(graphic::cRenderer& renderer
+		, rik::cJoint2* joint, const XMMATRIX& parentTm, const int flags = 0);
+	bool RenderUrdfVisual(graphic::cRenderer& renderer
+		, rik::cVisual2* visual, const XMMATRIX& parentTm, const int flags = 0);
 
 	void UpdateLookAt();
 	void OnWheelMove(const float delta, const POINT mousePt);
@@ -44,9 +49,9 @@ public:
 	physx::PxArticulationJointReducedCoordinate* m_motorJoint2;
 	physx::PxArticulationJointReducedCoordinate* m_motorJoint3;
 	physx::PxArticulationJointReducedCoordinate* m_motorJoint4;
-	graphic::cCube m_box;
-	graphic::cCylinder m_cylinder;
-	graphic::cSphere m_sphere;
+	//graphic::cCube m_box;
+	//graphic::cCylinder m_cylinder;
+	//graphic::cSphere m_sphere;
 
 	bool m_showGrid;
 
@@ -61,4 +66,13 @@ public:
 	// physx simulation
 	bool m_isSimulation; // start physx simulation?
 	vector<Vector3> m_jointPoss;
+	rik::cUrdf3 m_urdf;
+
+	// render urdf
+	graphic::cCube m_box1;
+	graphic::cDbgBoxLine m_box;
+	graphic::cDbgSphereLine m_sphere;
+	graphic::cDbgCylinderLine m_cylinder;
+	graphic::cDbgCylinderLine m_cylinerLine;
+	graphic::cDbgAxis m_dbgAxis; // end effector axis line
 };

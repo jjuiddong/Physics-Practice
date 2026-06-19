@@ -29,6 +29,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RobotTest", "RobotTest\Robo
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DirectXTK_Desktop_2019_Win10", "..\..\DirectXTK\DirectXTK_Desktop_2019_Win10.vcxproj", "{E0B52AE7-E160-4D32-BF3F-910B785E5A8E}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "UrdfTest", "UrdfTest\UrdfTest.vcxproj", "{70529B91-2396-4C50-959A-7537D3D5EF03}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|ARM64 = Debug|ARM64
@@ -171,6 +173,16 @@ Global
 		{E0B52AE7-E160-4D32-BF3F-910B785E5A8E}.Release|x64.Build.0 = Release|x64
 		{E0B52AE7-E160-4D32-BF3F-910B785E5A8E}.Release|x86.ActiveCfg = Release|Win32
 		{E0B52AE7-E160-4D32-BF3F-910B785E5A8E}.Release|x86.Build.0 = Release|Win32
+		{70529B91-2396-4C50-959A-7537D3D5EF03}.Debug|ARM64.ActiveCfg = Debug|Win32
+		{70529B91-2396-4C50-959A-7537D3D5EF03}.Debug|x64.ActiveCfg = Debug|x64
+		{70529B91-2396-4C50-959A-7537D3D5EF03}.Debug|x64.Build.0 = Debug|x64
+		{70529B91-2396-4C50-959A-7537D3D5EF03}.Debug|x86.ActiveCfg = Debug|Win32
+		{70529B91-2396-4C50-959A-7537D3D5EF03}.Debug|x86.Build.0 = Debug|Win32
+		{70529B91-2396-4C50-959A-7537D3D5EF03}.Release|ARM64.ActiveCfg = Release|Win32
+		{70529B91-2396-4C50-959A-7537D3D5EF03}.Release|x64.ActiveCfg = Release|x64
+		{70529B91-2396-4C50-959A-7537D3D5EF03}.Release|x64.Build.0 = Release|x64
+		{70529B91-2396-4C50-959A-7537D3D5EF03}.Release|x86.ActiveCfg = Release|Win32
+		{70529B91-2396-4C50-959A-7537D3D5EF03}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

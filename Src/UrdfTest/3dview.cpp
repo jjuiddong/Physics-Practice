@@ -71,14 +71,12 @@ bool c3DView::Init(cRenderer& renderer)
 	m_physSync->SpawnPlane(&renderer, Vector3(0, 1, 0));
 
 	InitRobot1();
-	//InitRobot2();
-	//InitRobot3();
 	
-	m_box.Create(renderer);
-	m_box.SetCube(Transform(Vector3(0, 0, 0), Vector3::Ones*0.5f));
-	m_cylinder.Create(renderer, 1.f, 1.f, 10, (eVertexType::POSITION | eVertexType::NORMAL | eVertexType::COLOR)
-	, cColor::WHITE, eCylinderType::AxisY);
-	m_sphere.Create(renderer, 1, 20, 20);
+	//m_box.Create(renderer);
+	//m_box.SetCube(Transform(Vector3(0, 0, 0), Vector3::Ones*0.5f));
+	//m_cylinder.Create(renderer, 1.f, 1.f, 10, (eVertexType::POSITION | eVertexType::NORMAL | eVertexType::COLOR)
+	//, cColor::WHITE, eCylinderType::AxisY);
+	//m_sphere.Create(renderer, 1, 20, 20);
 
 	return true;
 }
@@ -106,197 +104,352 @@ void c3DView::InitRobot1()
 {
 	using namespace physx;
 
-	const float frame_y = 1.0f;
-	const float frame_cx = 1.0f; // frame x-axis size
-	const float frame_cz = 1.0f; // frame z-axis size
-	const float frame_h = 0.2f; // frame height
-	const float frame_mass = 1.0f;
-	const float wheel_r = 0.2f;
-	const float wheel_d = 0.1f;
-	const float wheel_gap = wheel_d/2 + 0.1f;
-	const float wheel_mass = 1.0f;
+	if (!m_urdf.Open("robot.urdf"))
+		return;
 
-	m_art.Create(m_physics, false, 32);
+	const Transform tfm(Vector3(0,1,0));
 
-	physx::PxArticulationJointReducedCoordinate *joint = nullptr;
-
-	// create frame...
-	const Transform frameTfm(Vector3(0.f, frame_y, 0.f), Vector3(frame_cx, frame_h, frame_cz));
-	const int frame = m_art.AddBoxLink(m_physics, -1, frameTfm, frame_mass);
-
-	// create wheel
-	Quaternion rot;
-	rot.SetRotationZ(ANGLE2RAD(90));
-	const Transform wheelTfm1(Vector3(frame_cx/2 + wheel_gap, frame_y, frame_cz/2), rot);
-	const int wheel1 = m_art.AddCylinderLink(m_physics, frame, wheelTfm1, wheel_r, wheel_d);
-
-	const Transform wheelTfm2(Vector3(-frame_cx / 2 - wheel_gap, frame_y, frame_cz / 2), rot);
-	const int wheel2 = m_art.AddCylinderLink(m_physics, frame, wheelTfm2, wheel_r, wheel_d);
-
-	const Transform wheelTfm3(Vector3(frame_cx / 2 + wheel_gap, frame_y, -frame_cz / 2), rot);
-	const int wheel3 = m_art.AddCylinderLink(m_physics, frame, wheelTfm3, wheel_r, wheel_d);
-
-	const Transform wheelTfm4(Vector3(-frame_cx / 2 - wheel_gap, frame_y, -frame_cz / 2), rot);
-	const int wheel4 = m_art.AddCylinderLink(m_physics, frame, wheelTfm4, wheel_r, wheel_d);
-
-	joint = m_art.AddJoint(wheel1, phys::eJointType::Revolute
-		, Vector3(frame_cx/2, frame_y, frame_cz/2), wheelTfm1.pos);
-	m_art.SetJointDriveVelocity(joint, 0.f, 100.f, 100.f, 10.f);
-
-	joint = m_art.AddJoint(wheel2, phys::eJointType::Revolute
-		, Vector3(-frame_cx / 2, frame_y, frame_cz / 2), wheelTfm2.pos);
-	m_art.SetJointDriveVelocity(joint, 0.f, 100.f, 100.f, 10.f);
-
-	joint = m_art.AddJoint(wheel3, phys::eJointType::Revolute
-		, Vector3(frame_cx / 2, frame_y, -frame_cz / 2), wheelTfm3.pos);
-	m_art.SetJointDriveVelocity(joint, 0.f, 100.f, 100.f, 10.f);
-
-	joint = m_art.AddJoint(wheel4, phys::eJointType::Revolute
-		, Vector3(-frame_cx / 2, frame_y, -frame_cz / 2), wheelTfm4.pos);
-	m_art.SetJointDriveVelocity(joint, 0.f, 100.f, 100.f, 10.f);
-
-	m_art.AddScene(m_physics);
-}
-
-
-// initialize 4wheel steer robot
-void c3DView::InitRobot2()
-{
-	using namespace physx;
-
-	const float frame_y = 1.0f;
-	const float frame_cx = 1.0f; // frame x-axis size
-	const float frame_cz = 1.0f; // frame z-axis size
-	const float frame_h = 0.2f; // frame height
-	const float frame_mass = 1.0f;
-
-	const float motor_cx = 0.3f;
-	const float motor_cz = 0.2f;
-	const float motor_h = 0.2f;
-	const float motor_y = frame_y - frame_h / 2 - motor_h / 2 - 0.15f;
-	const float motor_mass = 1.f;
-
-	const float wheel_r = 0.2f;
-	const float wheel_d = 0.2f;
-	const float wheel_gap = motor_cx/2 + wheel_d/2 + 0.1f;
-	const float wheel_y = motor_y;
-	const float wheel_mass = 1.0f;
-
-	const float velocity = 1.f;
-
-	m_physics.m_material->setDynamicFriction(1.0f);
-	m_physics.m_material->setStaticFriction(1.0f);
-
-	m_art.Create(m_physics, false, 32);
+	phys::cPhysicsEngine& physics = m_physics;
 
 	physx::PxArticulationJointReducedCoordinate* joint = nullptr;
 
-	// create frame...
-	const Transform frameTfm(Vector3(0.f, frame_y, 0.f), Vector3(frame_cx, frame_h, frame_cz));
-	const int frame = m_art.AddBoxLink(m_physics, -1, frameTfm, frame_mass);
+	physx::PxMaterial* material = physics.s_physics->createMaterial(0.5f, 0.5f, 0.1f); // wheel material
+	physx::PxMaterial* wheelMtrl = physics.s_physics->createMaterial(1.0f, 1.0f, 0.1f); // wheel material
 
-	// create motor
-	const Vector3 motorScale(motor_cx, motor_h, motor_cz);
+	m_art.Create(physics, false, 32);
 
-	const Transform motorTfm1(Vector3(frame_cx / 2, motor_y, frame_cz / 2), motorScale);
-	const int motor1 = m_art.AddBoxLink(m_physics, frame, motorTfm1, motor_mass);
+	map<string, int> ids; // key: link name, value: physx object id
+	map<string, Matrix44> visWTms; // key: link name, value: visual world matrix
+	map<string, string> parents; // key: child link name, value: parent link name
 
-	const Transform motorTfm2(Vector3(-frame_cx / 2, motor_y, frame_cz / 2), motorScale);
-	const int motor2 = m_art.AddBoxLink(m_physics, frame, motorTfm2, motor_mass);
+	// collect all visual world transform
+	m_urdf.Traverse(
+		[&](rik::cNode2* node, const Matrix44& tm) {
+			if (1 == node->m_nodeType) // link
+			{
+				visWTms.insert({ node->m_name, tm });
+			}
+			else if (3 == node->m_nodeType) // visual
+			{
+				rik::cVisual2* vis = dynamic_cast<rik::cVisual2*>(node);
+				if (!vis) return false; // error, ignore
+				rik::cLink2* link = dynamic_cast<rik::cLink2*>(vis->m_parent);
+				if (!link) return false; // error, ignore
 
-	const Transform motorTfm3(Vector3(frame_cx / 2, motor_y, -frame_cz / 2), motorScale);
-	const int motor3 = m_art.AddBoxLink(m_physics, frame, motorTfm3, motor_mass);
+				visWTms.insert({ link->m_name, tm });
+			}
+			else if (2 == node->m_nodeType) // joint
+			{
+				rik::cJoint2* joint = dynamic_cast<rik::cJoint2*>(node);
+				if (!joint) return false; // error, ignore
 
-	const Transform motorTfm4(Vector3(-frame_cx / 2, motor_y, -frame_cz / 2), motorScale);
-	const int motor4 = m_art.AddBoxLink(m_physics, frame, motorTfm4, motor_mass);
+				parents.insert({ joint->m_childLink, joint->m_parentLink });
+			}
+			return false; // loop all
+		});
 
-	joint = m_art.AddJoint(motor1, phys::eJointType::Revolute
-		, Vector3(frame_cx / 2, wheel_y, frame_cz / 2), motorTfm1.pos, Vector3(0,1,0));
-	m_art.SetJointDriveTarget(joint, 100.f, 0.f, 100.f, 0.f);
-	m_motorJoint1 = joint;
+	// spawn physx object
+	m_urdf.Traverse(
+		[&](rik::cNode2* node, const Matrix44& tm) {
+			if (3 != node->m_nodeType) // only visual
+				return false; // all loop
 
-	joint = m_art.AddJoint(motor2, phys::eJointType::Revolute
-		, Vector3(-frame_cx / 2, wheel_y, frame_cz / 2), motorTfm2.pos, Vector3(0, 1, 0));
-	m_art.SetJointDriveTarget(joint, 100.f, 0.f, 100.f, 0.f);
-	m_motorJoint2 = joint;
+			rik::cVisual2* vis = dynamic_cast<rik::cVisual2*>(node);
+			if (!vis) return false; // error, ignore
+			rik::cLink2* link = dynamic_cast<rik::cLink2*>(vis->m_parent);
+			if (!link) return false; // error, ignore
 
-	joint = m_art.AddJoint(motor3, phys::eJointType::Revolute
-		, Vector3(frame_cx / 2, wheel_y, -frame_cz / 2), motorTfm3.pos, Vector3(0, 1, 0));
-	m_art.SetJointDriveTarget(joint, 100.f, 0.f, 100.f, 0.f);
-	m_motorJoint3 = joint;
+			const float mass = 1.f;
+			int parentId = -1; // parent link physx object Id, -1:root
+			Matrix44 ptm; // parent tm
 
-	joint = m_art.AddJoint(motor4, phys::eJointType::Revolute
-		, Vector3(-frame_cx / 2, wheel_y, -frame_cz / 2), motorTfm4.pos, Vector3(0, 1, 0));
-	m_art.SetJointDriveTarget(joint, 100.f, 0.f, 100.f, 0.f);
-	m_motorJoint4 = joint;
+			// find parent link
+			auto it = parents.find(link->m_name);
+			if (parents.end() != it)
+			{
+				const string& parentLinkName = it->second;
 
+				// find parent tm
+				auto it2 = visWTms.find(parentLinkName);
+				if (visWTms.end() == it2) return false; // error return
 
-	// create wheel
-	Quaternion rot;
-	rot.SetRotationZ(ANGLE2RAD(90));
-	const Transform wheelTfm1(motorTfm1.pos + Vector3(wheel_gap, 0, 0), rot);
-	const int wheel1 = m_art.AddCylinderLink(m_physics, motor1, wheelTfm1, wheel_r, wheel_d, wheel_mass);
+				auto it3 = ids.find(parentLinkName);
 
-	const Transform wheelTfm2(motorTfm2.pos + Vector3(-wheel_gap, 0, 0), rot);
-	const int wheel2 = m_art.AddCylinderLink(m_physics, motor2, wheelTfm2, wheel_r, wheel_d, wheel_mass);
+				ptm = it2->second;
+				parentId = (ids.end() == it3) ? -1 : it3->second;
+			}
 
-	const Transform wheelTfm3(motorTfm3.pos + Vector3(wheel_gap, 0, 0), rot);
-	const int wheel3 = m_art.AddCylinderLink(m_physics, motor3, wheelTfm3, wheel_r, wheel_d, wheel_mass);
+			Transform linkTfm;
+			linkTfm.pos = tm.GetPosition();// .ToOpenGL();
+			linkTfm.rot = tm.GetQuaternion();// .ToOpenGL();
 
-	const Transform wheelTfm4(motorTfm4.pos + Vector3(-wheel_gap, 0, 0), rot);
-	const int wheel4 = m_art.AddCylinderLink(m_physics, motor4, wheelTfm4, wheel_r, wheel_d, wheel_mass);
+			int linkId = -1;
+			switch (vis->m_geoType)
+			{
+			case 0: // box
+				linkTfm.scale = vis->m_dimension;
+				linkId = m_art.AddBoxLink(physics, parentId, linkTfm, mass);
+				break;
 
-	joint = m_art.AddJoint(wheel1, phys::eJointType::Revolute, motorTfm1.pos, wheelTfm1.pos);
-	m_art.SetJointDriveVelocity(joint, 0.f, 100.f, 100.f, velocity);
+			case 1: // sphere
+				linkId = m_art.AddSphereLink(physics, parentId, linkTfm
+					, vis->m_radius, mass);
+				break;
 
-	joint = m_art.AddJoint(wheel2, phys::eJointType::Revolute, motorTfm2.pos, wheelTfm2.pos);
-	m_art.SetJointDriveVelocity(joint, 0.f, 100.f, 100.f, velocity);
+			case 2: // cylinder
+				linkId = m_art.AddCylinderLink(physics, parentId, linkTfm
+					, vis->m_radius, vis->m_height, mass);
+				break;
+			}
 
-	joint = m_art.AddJoint(wheel3, phys::eJointType::Revolute, motorTfm3.pos, wheelTfm3.pos);
-	m_art.SetJointDriveVelocity(joint, 0.f, 100.f, 100.f, velocity);
+			if (linkId < 0)
+				return false; // error return
 
-	joint = m_art.AddJoint(wheel4, phys::eJointType::Revolute, motorTfm4.pos, wheelTfm4.pos);
-	m_art.SetJointDriveVelocity(joint, 0.f, 100.f, 100.f, velocity);
+			ids.insert({ link->m_name, linkId });
 
+			return false; // loop all
+		});
 
-	m_art.AddScene(m_physics);
+	// spawn physx joint
+	m_urdf.Traverse(
+		[&](rik::cNode2* node, const Matrix44& tm) {
+			if (2 != node->m_nodeType) // only joint
+				return false; // all loop
+
+			rik::cJoint2* joint = dynamic_cast<rik::cJoint2*>(node);
+			if (!joint) return false; // error, ignore
+
+			auto it1 = ids.find(joint->m_childLink);
+			if (ids.end() == it1) return  false; // error return
+			auto it2 = visWTms.find(joint->m_parentLink);
+			if (visWTms.end() == it2) return  false; // error return
+			auto it3 = visWTms.find(joint->m_childLink);
+			if (visWTms.end() == it2) return  false; // error return
+
+			const int childLinkId = it1->second;
+
+			const Matrix44& ptm = it2->second; // parent transform
+			const Matrix44& ctm = it3->second; // child transform
+			const Vector3 pos0 = ptm.GetPosition();// .ToOpenGL();
+			const Vector3 pos1 = ctm.GetPosition();// .ToOpenGL();
+
+			physx::PxArticulationJointReducedCoordinate* j = nullptr;
+			switch (joint->m_type)
+			{
+			case 0: // revolute
+				j = m_art.AddJoint(childLinkId, phys::eJointType::Revolute
+					, pos0, pos1, joint->m_axis);
+				m_art.SetJointDriveVelocity(j, 0.f, 1000.f, 1000.f, 1.f); // default
+				//m_art.SetJointDriveTarget(joint, 1000.f, 0.f, 1000.f, 0.f);
+				break;
+			case 1: // prismatic
+				break;
+			case 3: // universal
+				break;
+			case 4: // fixed
+				j = m_art.AddJoint(childLinkId, phys::eJointType::Fixed
+					, pos0, pos1, joint->m_axis);
+				break;
+			default:
+				break;
+			}
+
+			return false; // loop all
+		});
+
+	if (m_art.m_links.empty())
+		return; // nothing to do
+
+	Transform tm = tfm;
+	m_art.SetGlobalPose(tm);
+	m_art.AddScene(physics);
+	material->release();
+	wheelMtrl->release();
 }
 
 
-// initialize test vehicle
-void c3DView::InitRobot3()
+// render robot
+void c3DView::RenderUrdf(graphic::cRenderer& renderer, const float deltaSeconds)
 {
-	using namespace physx;
+	RenderUrdfNode(renderer, m_urdf.m_root, Matrix44::Identity.GetMatrixXM(), 1);
 
-	const float velocity = 1.f;
+	CommonStates state(renderer.GetDevice());
+	renderer.GetDevContext()->OMSetDepthStencilState(state.DepthNone(), 0);
+	RenderUrdfNode(renderer, m_urdf.m_root, Matrix44::Identity.GetMatrixXM(), 2);
+	renderer.GetDevContext()->OMSetDepthStencilState(state.DepthDefault(), 0);
+}
 
-	m_physics.m_material->setDynamicFriction(1.0f);
-	m_physics.m_material->setStaticFriction(1.0f);
 
-	m_art.Create(m_physics, false, 32);
+// render robot node
+bool c3DView::RenderUrdfNode(graphic::cRenderer& renderer
+	, rik::cNode2* node, const XMMATRIX& parentTm
+	, const int flags //= 0
+)
+{
+	RETV(!node, false);
 
-	physx::PxArticulationJointReducedCoordinate* joint = nullptr;
+	switch (node->m_nodeType)
+	{
+	case 0: // node
+		for (auto& p : node->m_children)
+			RenderUrdfNode(renderer, p, parentTm, flags);
+		break;
+	case 1: // link
+	{
+		const XMMATRIX tm = node->m_transform.GetMatrixXM() * parentTm;
+		for (auto& p : node->m_children)
+			RenderUrdfNode(renderer, p, tm, flags);
+	}
+	break;
+	case 2: // joint
+		if (rik::cJoint2* joint = dynamic_cast<rik::cJoint2*>(node))
+			RenderUrdfJoint(renderer, joint, parentTm, flags);
+		break;
+	case 3: // visual
+		if (rik::cVisual2* visual = dynamic_cast<rik::cVisual2*>(node))
+			RenderUrdfVisual(renderer, visual, parentTm, flags);
+		break;
+	default: assert(0); break;
+	}
+	return true;
+}
 
-	// create frame...
-	Vector3 framePos(0.f, 1.f, 0.f);
-	const Transform frameTfm(framePos, Vector3(0.3f, 0.1f, 0.3f));
-	const int frame = m_art.AddBoxLink(m_physics, -1, frameTfm, 1.f);
 
-	Quaternion rot;
-	rot.SetRotationZ(ANGLE2RAD(90));
-	const Transform wheelTfm1(framePos + Vector3(0.5f, 0, 0), rot);
-	const int wheel1 = m_art.AddCylinderLink(m_physics, frame, wheelTfm1, 0.3f, 0.1f, 1.f);
+// render joint
+bool c3DView::RenderUrdfJoint(graphic::cRenderer& renderer
+	, rik::cJoint2* joint, const XMMATRIX& parentTm
+	, const int flags //= 0
+)
+{
+	XMMATRIX tm;
+	switch (joint->m_type)
+	{
+	case 0: // revolute
+	{
+		Transform tfm = joint->m_transform;
+		const Quaternion rot(joint->m_axis, joint->m_val);
+		tfm.rot = rot * tfm.rot;
+		tm = tfm.GetMatrixXM() * parentTm;
 
-	const Transform wheelTfm2(framePos + Vector3(-0.5f, 0, 0), rot);
-	const int wheel2 = m_art.AddCylinderLink(m_physics, frame, wheelTfm2, 0.3f, 0.1f, 1.f);
+		if ((0 == flags) || (2 == flags))
+		{
+			// render joint cylinder
+			if (!m_cylinerLine.m_lines.m_vtxBuff.m_vtxBuff)
+				m_cylinerLine.Create(renderer, 0.025f, 0.05f, 30);
 
-	joint = m_art.AddJoint(wheel1, phys::eJointType::Revolute, framePos, wheelTfm1.pos);
-	m_art.SetJointDriveVelocity(joint, 0.f, 100.f, 100.f, velocity);
+			m_cylinerLine.SetColor(graphic::cColor::GREEN);
+			m_cylinerLine.SetPos(Vector3());// tfm.pos);
+			Quaternion rot;
+			rot.SetRotationArc(Vector3(0, 1, 0), joint->m_axis);
+			m_cylinerLine.SetRotation(rot);
 
-	joint = m_art.AddJoint(wheel2, phys::eJointType::Revolute, framePos, wheelTfm2.pos);
-	m_art.SetJointDriveVelocity(joint, 0.f, 100.f, 100.f, velocity);
+			// render joint axis
+			const float length = 0.1f;
+			renderer.m_dbgLine.SetColor(graphic::cColor::GREEN);
+			//renderer.m_dbgLine.SetLine(tfm.pos, tfm.pos + joint->m_axis * length, 0.001f);
+			renderer.m_dbgLine.SetLine(Vector3(), joint->m_axis * length, 0.001f);
+			renderer.m_dbgLine.Render(renderer, tm);// parentTm);
 
-	m_art.AddScene(m_physics);
+			m_cylinerLine.Render(renderer, tm);// parentTm);
+		}
+	}
+	break;
+
+	default:
+	{
+		// render default joint geometry
+		if ((0 == flags) || (2 == flags))
+		{
+			Transform tfm = joint->m_transform;
+			tfm.scale = Vector3(0.02f, 0.02f, 0.02f);
+			renderer.m_dbgBox.SetBox(tfm);
+			renderer.m_dbgBox.SetColor(graphic::cColor::GREEN);
+			renderer.m_dbgBox.Render(renderer, parentTm);
+		}
+
+		Transform tfm = joint->m_transform;
+		tfm.rot.SetIdentity(); // ignore rotation
+		tm = tfm.GetMatrixXM() * parentTm;
+	}
+	break;
+	}
+
+	//m_tm = tm; // update world transform
+	for (auto& p : joint->m_children)
+		RenderUrdfNode(renderer, p, tm, flags);
+	return true;
+}
+
+
+// render visual
+bool c3DView::RenderUrdfVisual(graphic::cRenderer& renderer
+	, rik::cVisual2* visual, const XMMATRIX& parentTm
+	, const int flags //= 0
+)
+{
+	if ((0 == flags) || (1 == flags))
+	{
+		switch (visual->m_geoType)
+		{
+		case 0: // box
+		{
+			if (!m_box.m_lines.m_vtxBuff.m_vtxBuff)
+				m_box.Create(renderer);
+			if (!m_box1.m_shape.m_vtxBuff.m_vtxBuff)
+				m_box1.Create(renderer);
+
+			{
+				Transform tfm = visual->m_transform;
+				tfm.scale = visual->m_dimension * 0.5f;
+				m_box.SetBox(tfm);
+			}
+			{
+				Transform tfm = visual->m_transform;
+				tfm.scale = visual->m_dimension * 0.5f;
+				m_box1.SetCube(tfm);
+			}
+
+			m_box1.SetColor(visual->m_color);
+			m_box1.Render(renderer, parentTm);
+			m_box.SetColor(graphic::cColor(1.f, 1.f, 1.f, 0.65f));
+			m_box.Render(renderer, parentTm);
+		}
+		break;
+
+		case 1: // sphere
+		{
+			if (!m_sphere.m_lines.m_vtxBuff.m_vtxBuff)
+				m_sphere.Create(renderer, visual->m_radius, 30);
+
+			m_sphere.SetPos(visual->m_transform.pos);
+			m_sphere.SetColor(visual->m_color);
+			m_sphere.SetRadius(visual->m_radius);
+			m_sphere.Render(renderer, parentTm);
+		}
+		break;
+
+		case 2: // cylinder
+		{
+			if (!m_cylinder.m_lines.m_vtxBuff.m_vtxBuff)
+				m_cylinder.Create(renderer, visual->m_radius, visual->m_height, 30);
+
+			m_cylinder.m_transform.pos = visual->m_transform.pos;
+			m_cylinder.m_transform.rot = visual->m_transform.rot;
+			m_cylinder.SetColor(visual->m_color);
+			m_cylinder.Render(renderer, parentTm);
+		}
+		break;
+
+		default:
+			assert(0);
+			break;
+		}
+	}
+
+	const XMMATRIX tm = visual->m_transform.GetMatrixXM() * parentTm;
+	for (auto& p : visual->m_children)
+		RenderUrdfNode(renderer, p, tm, flags);
+	return true;
 }
 
 
@@ -357,14 +510,15 @@ void c3DView::OnPreRender(const float deltaSeconds)
 		using namespace physx;
 
 		m_art.Render(renderer);
+		RenderUrdf(renderer, deltaSeconds);
 
-		m_box.SetColor(cColor::GREEN);
-		for (auto& pos : m_jointPoss)
-		{
-			Transform tm(pos, Vector3::Ones * 0.01f);
-			m_box.SetCube(tm);
-			m_box.Render(renderer);
-		}
+		//m_box.SetColor(cColor::GREEN);
+		//for (auto& pos : m_jointPoss)
+		//{
+		//	Transform tm(pos, Vector3::Ones * 0.01f);
+		//	m_box.SetCube(tm);
+		//	m_box.Render(renderer);
+		//}
 
 		if (m_showGrid)
 			m_grid.Render(renderer);
